@@ -157,21 +157,38 @@ function CompanyPage() {
       </div>
 
       {/* Company photo */}
-      <div
-        style={{
-          width: "100%",
-          height: 180,
-          borderRadius: "var(--radius)",
-          overflow: "hidden",
-          marginBottom: 20,
-          border: "1px solid var(--border)",
-        }}
-      >
-        <img
-          src="/company.jpg"
-          alt="Company"
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+      {/* Company photos */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div
+          style={{
+            flex: 1,
+            height: 160,
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <img
+            src="/company.jpg"
+            alt="Company"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+        <div
+          style={{
+            flex: 1,
+            height: 160,
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <img
+            src="/company2.jpg"
+            alt="Company 2"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
       </div>
       <SubTitle en="Company Overview" ja="会社概要" />
       <BilingualBlock

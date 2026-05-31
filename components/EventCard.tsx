@@ -333,23 +333,85 @@ export default function EventCard({ event, compact = false }: Props) {
         </div>
 
         {/* Participants */}
+        {/* Participants */}
         <button
           onClick={handleViewParticipants}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 5,
+            gap: 8,
             fontSize: 11,
             marginBottom: compact ? 10 : 10,
-            color: isLoggedIn ? "var(--green)" : "var(--fg-muted)",
             background: "none",
             border: "none",
             cursor: "pointer",
             padding: 0,
           }}
         >
-          <Users size={11} />
-          <span>{count} participants / 参加者</span>
+          {/* Avatar stack */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {Array.from({ length: Math.min(3, count) }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "2px solid var(--bg-card)",
+                  marginLeft: i === 0 ? 0 : -6,
+                  background: [
+                    "linear-gradient(135deg, var(--accent), var(--accent2))",
+                    "linear-gradient(135deg, var(--green), var(--accent))",
+                    "linear-gradient(135deg, var(--accent2), var(--yellow))",
+                  ][i],
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 8,
+                  color: "#fff",
+                  fontWeight: 700,
+                  zIndex: 3 - i,
+                  position: "relative",
+                }}
+              >
+                {["A", "B", "C"][i]}
+              </div>
+            ))}
+            {count > 3 && (
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "2px solid var(--bg-card)",
+                  marginLeft: -6,
+                  background: "var(--bg-glass)",
+                  border: "2px solid var(--border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 8,
+                  color: "var(--fg-muted)",
+                  fontWeight: 700,
+                  position: "relative",
+                  zIndex: 0,
+                }}
+              >
+                +{count - 3}
+              </div>
+            )}
+          </div>
+          <span
+            style={{ color: isLoggedIn ? "var(--green)" : "var(--fg-muted)" }}
+          >
+            {count} participants / 参加者
+            {!isLoggedIn && (
+              <span style={{ color: "var(--fg-muted)", fontSize: 10 }}>
+                {" "}
+                🔒
+              </span>
+            )}
+          </span>
         </button>
 
         {/* Description — hidden in compact */}
