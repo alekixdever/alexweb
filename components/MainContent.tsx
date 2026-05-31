@@ -1,8 +1,10 @@
 "use client";
 
+import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
 import { locations } from "@/data/locations";
 import { events } from "@/data/events";
+import { LayoutList, LayoutGrid } from "lucide-react";
 
 interface Props {
   selectedLocation: string;
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function MainContent({ selectedLocation, selectedDate }: Props) {
+  const { columnLayout, setColumnLayout } = useApp();
   const location = locations.find((l) => l.id === selectedLocation);
 
   const count = events.filter((e) => {
@@ -30,18 +33,20 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
     <main
       style={{
         flex: 1,
-        overflowY: "auto",
-        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         minWidth: 0,
       }}
     >
-      {/* Header bar */}
+      {/* Top bar */}
       <div
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 16,
+          marginBottom: "var(--gap)",
+          flexShrink: 0,
           flexWrap: "wrap",
           gap: 8,
         }}
@@ -49,39 +54,85 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
         <div>
           <h2
             style={{
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
-              color: "var(--foreground)",
+              color: "var(--fg-primary)",
             }}
           >
             Events / イベント
           </h2>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+          <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
             {location?.name ?? selectedLocation} · {dateLabel}
           </p>
         </div>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "4px 10px",
-            borderRadius: 20,
-            background:
-              count > 0 ? "rgba(78,204,163,0.12)" : "rgba(136,136,168,0.12)",
-            color: count > 0 ? "var(--green)" : "var(--muted)",
-            border: `1px solid ${count > 0 ? "rgba(78,204,163,0.25)" : "rgba(136,136,168,0.2)"}`,
-            alignSelf: "flex-start",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {count} {count === 1 ? "event" : "events"}
-        </span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Event count badge */}
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "3px 10px",
+              borderRadius: 99,
+              background:
+                count > 0 ? "rgba(52,211,153,0.1)" : "var(--bg-glass)",
+              color: count > 0 ? "var(--green)" : "var(--fg-muted)",
+              border: `1px solid ${count > 0 ? "rgba(52,211,153,0.25)" : "var(--border)"}`,
+            }}
+          >
+            {count} {count === 1 ? "event" : "events"}
+          </span>
+
+          {/* Layout toggle — desktop only */}
+          <div
+            className="hidden lg:flex"
+            style={{
+              display: "flex",
+              gap: 2,
+              padding: 3,
+              background: "var(--bg-glass)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            {([1, 3] as const).map((col) => (
+              <button
+                key={col}
+                onClick={() => setColumnLayout(col)}
+                title={col === 1 ? "Single column" : "Three columns"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background:
+                    columnLayout === col ? "var(--accent)" : "transparent",
+                  color: columnLayout === col ? "#fff" : "var(--fg-muted)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {col === 1 ? (
+                  <LayoutList size={13} />
+                ) : (
+                  <LayoutGrid size={13} />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <EventList
-        selectedLocation={selectedLocation}
-        selectedDate={selectedDate}
-      />
+      {/* Scrollable event list */}
+      <div style={{ flex: 1, overflowY: "auto", paddingRight: 2 }}>
+        <EventList
+          selectedLocation={selectedLocation}
+          selectedDate={selectedDate}
+        />
+      </div>
     </main>
   );
 }

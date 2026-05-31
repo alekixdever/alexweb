@@ -17,7 +17,6 @@ export default function MobileDrawer({ side, children }: Props) {
   const close = () =>
     side === "left" ? setLeftDrawer(false) : setRightDrawer(false);
 
-  // Scroll lock
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => {
@@ -35,13 +34,14 @@ export default function MobileDrawer({ side, children }: Props) {
             position: "fixed",
             inset: 0,
             zIndex: 80,
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(2px)",
+            background: "rgba(5,5,10,0.7)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
         />
       )}
 
-      {/* Drawer */}
+      {/* Drawer panel */}
       <div
         style={{
           position: "fixed",
@@ -50,36 +50,44 @@ export default function MobileDrawer({ side, children }: Props) {
           zIndex: 90,
           [side]: 0,
           width: "var(--sidebar-width)",
-          background: "var(--card)",
-          borderRight:
-            side === "left" ? "1px solid var(--card-border)" : "none",
-          borderLeft:
-            side === "right" ? "1px solid var(--card-border)" : "none",
+          background: "var(--bg-layer1)",
+          borderRight: side === "left" ? "1px solid var(--border)" : "none",
+          borderLeft: side === "right" ? "1px solid var(--border)" : "none",
+          boxShadow:
+            side === "left"
+              ? "4px 0 40px rgba(0,0,0,0.5), 0 0 40px var(--accent-glow)"
+              : "-4px 0 40px rgba(0,0,0,0.5), 0 0 40px var(--accent-glow)",
           transform: isOpen
             ? "translateX(0)"
             : `translateX(${side === "left" ? "-100%" : "100%"})`,
-          transition: "transform 0.25s ease",
+          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           overflowY: "auto",
+          padding: "var(--gap)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--gap)",
         }}
       >
+        {/* Close button */}
         <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            padding: "12px 12px 0",
-          }}
+          style={{ display: "flex", justifyContent: "flex-end", flexShrink: 0 }}
         >
           <button
             onClick={close}
             style={{
-              background: "none",
-              border: "none",
+              width: 30,
+              height: 30,
+              borderRadius: "var(--radius-sm)",
+              background: "var(--bg-glass)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
-              color: "var(--muted)",
-              padding: 4,
+              color: "var(--fg-muted)",
             }}
           >
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
         {children}

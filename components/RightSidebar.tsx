@@ -2,178 +2,241 @@
 
 import { useApp } from "@/context/AppContext";
 import { mockUser, contactList } from "@/data/users";
-import { LogIn } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 
 export default function RightSidebar() {
-  const { isLoggedIn, openAuthModal, theme } = useApp();
-  const isLight = theme === "light";
-
-  const asideStyle = {
-    width: "var(--right-sidebar-width)",
-    background: isLight ? "rgba(255,255,255,0.75)" : "var(--card)",
-    backdropFilter: isLight ? "blur(12px)" : "none",
-    WebkitBackdropFilter: isLight ? "blur(12px)" : "none",
-    borderLeft: "1px solid var(--card-border)",
-    boxShadow: isLight ? "-2px 0 20px var(--shadow)" : "none",
-    flexShrink: 0,
-    transition: "all 0.3s",
-  };
+  const { isLoggedIn, openAuthModal, logout } = useApp();
 
   if (!isLoggedIn) {
     return (
       <aside
         style={{
-          ...asideStyle,
-          padding: "24px 16px",
+          width: "var(--right-sidebar-width)",
+          height: "100%",
           display: "flex",
-          flexDirection: "column" as const,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
+          flexDirection: "column",
+          gap: "var(--gap)",
         }}
       >
-        <div style={{ fontSize: 32 }}>👋</div>
-        <p
+        <div
+          className="float-card"
           style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "var(--foreground)",
-            textAlign: "center",
-          }}
-        >
-          Join the Community
-        </p>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--muted)",
-            textAlign: "center",
-            lineHeight: 1.6,
-          }}
-        >
-          Log in to join events, view participants, and connect with other
-          members. / ログインしてイベントに参加しましょう。
-        </p>
-        <button
-          onClick={() =>
-            openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" })
-          }
-          style={{
+            flex: 1,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            gap: 6,
-            background: "var(--accent)",
-            color: "#fff",
-            border: "none",
-            padding: "10px 20px",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontWeight: 600,
-            fontSize: 13,
-            width: "100%",
             justifyContent: "center",
-            boxShadow: isLight ? "0 4px 12px var(--shadow)" : "none",
+            padding: "32px 20px",
+            gap: 14,
+            textAlign: "center",
           }}
         >
-          <LogIn size={14} /> Log In / ログイン
-        </button>
+          {/* Glow orb */}
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background:
+                "linear-gradient(135deg, var(--accent), var(--accent2))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+              boxShadow: "0 8px 32px var(--accent-glow)",
+            }}
+          >
+            👋
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "var(--fg-primary)",
+                marginBottom: 6,
+              }}
+            >
+              Join the Community
+            </p>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--fg-muted)",
+                lineHeight: 1.6,
+              }}
+            >
+              Log in to join events, view participants, and connect with
+              members.
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" })
+            }
+            className="btn-primary"
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <LogIn size={14} /> Log In / ログイン
+          </button>
+        </div>
       </aside>
     );
   }
 
   return (
-    <aside style={{ ...asideStyle, padding: "16px", overflowY: "auto" }}>
-      {/* Profile */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 20,
-          padding: "12px",
-          background: isLight ? "rgba(108,92,231,0.06)" : "var(--background)",
-          borderRadius: 10,
-          border: isLight ? "1px solid rgba(108,92,231,0.12)" : "none",
-        }}
-      >
-        <img
-          src={mockUser.avatar}
-          alt={mockUser.name}
+    <aside
+      style={{
+        width: "var(--right-sidebar-width)",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--gap)",
+        overflowY: "auto",
+      }}
+    >
+      {/* Profile card */}
+      <div className="float-card" style={{ padding: 16, flexShrink: 0 }}>
+        <div
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            border: "2px solid var(--accent)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 14,
           }}
-        />
-        <div>
-          <p
+        >
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <img
+              src={mockUser.avatar}
+              alt={mockUser.name}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "2px solid var(--accent)",
+                boxShadow: "0 0 12px var(--accent-glow)",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                bottom: 1,
+                right: 1,
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "var(--green)",
+                border: "2px solid var(--bg-card)",
+                boxShadow: "0 0 6px var(--green-glow)",
+              }}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "var(--fg-primary)",
+                marginBottom: 2,
+              }}
+            >
+              {mockUser.name}
+            </p>
+            <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
+          </div>
+          <button
+            onClick={logout}
+            title="Logout"
             style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "var(--foreground)",
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: "var(--bg-glass)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: "var(--fg-muted)",
+              flexShrink: 0,
             }}
           >
-            {mockUser.name}
-          </p>
-          <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
+            <LogOut size={12} />
+          </button>
         </div>
       </div>
 
-      {/* Contacts */}
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--muted)",
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          marginBottom: 10,
-        }}
-      >
-        Contacts / コンタクト
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {contactList.map((user) => (
-          <div
-            key={user.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 10px",
-              borderRadius: 8,
-              cursor: "pointer",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = isLight
-                ? "rgba(108,92,231,0.06)"
-                : "var(--background)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
-          >
-            <img
-              src={user.avatar}
-              alt={user.name}
-              style={{ width: 32, height: 32, borderRadius: "50%" }}
-            />
-            <span style={{ fontSize: 13, color: "var(--foreground)" }}>
-              {user.name}
-            </span>
-            <span
+      {/* Contacts card */}
+      <div className="float-card" style={{ padding: "14px 0", flex: 1 }}>
+        <p className="label-xs" style={{ padding: "0 16px 10px" }}>
+          Contacts / コンタクト
+        </p>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {contactList.map((user, i) => (
+            <div
+              key={user.id}
               style={{
-                marginLeft: "auto",
-                fontSize: 10,
-                color: "var(--green)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 16px",
+                cursor: "pointer",
+                transition: "background 0.15s",
               }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--bg-glass)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
             >
-              ●
-            </span>
-          </div>
-        ))}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: "50%",
+                    border: "1px solid var(--border)",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background:
+                      i % 3 === 0 ? "var(--fg-muted)" : "var(--green)",
+                    border: "2px solid var(--bg-card)",
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "var(--fg-secondary)",
+                  }}
+                >
+                  {user.name}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </aside>
   );

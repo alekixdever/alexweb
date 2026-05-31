@@ -10,6 +10,7 @@ import {
 
 type PendingActionType = "JOIN_EVENT" | "COMMENT" | "VIEW_PARTICIPANTS";
 type Theme = "dark" | "light";
+type ColumnLayout = 1 | 3;
 
 interface PendingAction {
   type: PendingActionType;
@@ -25,6 +26,7 @@ interface AppState {
   leftDrawerOpen: boolean;
   rightDrawerOpen: boolean;
   theme: Theme;
+  columnLayout: ColumnLayout;
 }
 
 interface AppContextType extends AppState {
@@ -35,9 +37,15 @@ interface AppContextType extends AppState {
   setLeftDrawer: (open: boolean) => void;
   setRightDrawer: (open: boolean) => void;
   toggleTheme: () => void;
+  setColumnLayout: (col: ColumnLayout) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+
+function getAutoTheme(): Theme {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 18 ? "light" : "dark";
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
@@ -48,15 +56,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     leftDrawerOpen: false,
     rightDrawerOpen: false,
     theme: "dark",
+    columnLayout: 1,
   });
 
-  // Apply theme to <html> data-theme attribute
+  // Auto theme on mount
+  useEffect(() => {
+    const autoTheme = getAutoTheme();
+    setState((prev) => ({ ...prev, theme: autoTheme }));
+  }, []);
+
+  // Apply theme to <html>
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", state.theme);
   }, [state.theme]);
 
+  // Auto theme check every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState((prev) => {
+        const autoTheme = getAutoTheme();
+        if (prev.theme !== autoTheme) {
+          return { ...prev, theme: autoTheme };
+        }
+        return prev;
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const login = () =>
     setState((prev) => ({ ...prev, isLoggedIn: true, authModalOpen: false }));
+
   const logout = () =>
     setState((prev) => ({ ...prev, isLoggedIn: false, pendingAction: null }));
 
@@ -88,6 +118,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       theme: prev.theme === "dark" ? "light" : "dark",
     }));
 
+  const setColumnLayout = (col: ColumnLayout) =>
+    setState((prev) => ({ ...prev, columnLayout: col }));
+
   return (
     <AppContext.Provider
       value={{
@@ -99,6 +132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLeftDrawer,
         setRightDrawer,
         toggleTheme,
+        setColumnLayout,
       }}
     >
       {children}

@@ -26,35 +26,58 @@ export default function Home() {
   };
 
   return (
-    <>
-      <Header />
-
+    <div style={{ position: "relative", height: "100vh", overflow: "hidden" }}>
+      {/* Background sits behind everything */}
       <div
         style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          background: "var(--bg-base)",
+        }}
+      />
+
+      {/* Layout */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
           display: "flex",
-          height: "calc(100vh - var(--header-height))",
-          overflow: "hidden",
+          flexDirection: "column",
+          height: "100vh",
         }}
       >
-        {/* Desktop Left Sidebar */}
-        <div className="hidden lg:block">
-          <LeftSidebar
+        <Header />
+
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            overflow: "hidden",
+            gap: "var(--gap)",
+            padding: "var(--gap)",
+          }}
+        >
+          {/* Desktop Left Sidebar */}
+          <div className="hidden lg:block" style={{ flexShrink: 0 }}>
+            <LeftSidebar
+              selectedLocation={selectedLocation}
+              selectedDate={selectedDate}
+              onLocationSelect={setSelectedLocation}
+              onDateSelect={setSelectedDate}
+            />
+          </div>
+
+          {/* Main Content */}
+          <MainContent
             selectedLocation={selectedLocation}
             selectedDate={selectedDate}
-            onLocationSelect={setSelectedLocation}
-            onDateSelect={setSelectedDate}
           />
-        </div>
 
-        {/* Main Content */}
-        <MainContent
-          selectedLocation={selectedLocation}
-          selectedDate={selectedDate}
-        />
-
-        {/* Desktop Right Sidebar */}
-        <div className="hidden lg:block">
-          <RightSidebar />
+          {/* Desktop Right Sidebar */}
+          <div className="hidden lg:block" style={{ flexShrink: 0 }}>
+            <RightSidebar />
+          </div>
         </div>
       </div>
 
@@ -73,6 +96,6 @@ export default function Home() {
       </MobileDrawer>
 
       <AuthModal />
-    </>
+    </div>
   );
 }

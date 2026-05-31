@@ -1,6 +1,5 @@
 "use client";
 
-import { useApp } from "@/context/AppContext";
 import LocationList from "./LocationList";
 import Calendar from "./Calendar";
 
@@ -17,31 +16,33 @@ export default function LeftSidebar({
   onLocationSelect,
   onDateSelect,
 }: Props) {
-  const { theme } = useApp();
-  const isLight = theme === "light";
-
   return (
     <aside
       style={{
         width: "var(--sidebar-width)",
-        background: isLight ? "rgba(255,255,255,0.75)" : "var(--card)",
-        backdropFilter: isLight ? "blur(12px)" : "none",
-        WebkitBackdropFilter: isLight ? "blur(12px)" : "none",
-        borderRight: "1px solid var(--card-border)",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--gap)",
         overflowY: "auto",
-        flexShrink: 0,
-        boxShadow: isLight ? "2px 0 20px var(--shadow)" : "none",
-        transition: "all 0.3s",
+        paddingRight: 2,
       }}
     >
-      <LocationList
-        selectedLocation={selectedLocation}
-        onSelect={onLocationSelect}
-      />
-      <div
-        style={{ height: 1, background: "var(--card-border)", margin: "8px 0" }}
-      />
-      <Calendar selectedDate={selectedDate} onSelect={onDateSelect} />
+      {/* Venues card */}
+      <div className="float-card" style={{ padding: "16px 0", flexShrink: 0 }}>
+        <p className="label-xs" style={{ padding: "0 16px 10px" }}>
+          Venues / 会場
+        </p>
+        <LocationList
+          selectedLocation={selectedLocation}
+          onSelect={onLocationSelect}
+        />
+      </div>
+
+      {/* Calendar card */}
+      <div className="float-card" style={{ padding: "16px", flexShrink: 0 }}>
+        <Calendar selectedDate={selectedDate} onSelect={onDateSelect} />
+      </div>
     </aside>
   );
 }

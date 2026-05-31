@@ -1,6 +1,7 @@
 "use client";
 
 import { events } from "@/data/events";
+import { useApp } from "@/context/AppContext";
 import EventCard from "./EventCard";
 import EmptyState from "./EmptyState";
 
@@ -10,11 +11,11 @@ interface Props {
 }
 
 export default function EventList({ selectedLocation, selectedDate }: Props) {
+  const { columnLayout } = useApp();
+
   const filtered = events.filter((e) => {
-    const eventDateStr = e.date.toISOString().split("T")[0];
-    const matchDate = eventDateStr === selectedDate;
-    const matchLocation = e.locationId === selectedLocation;
-    return matchDate && matchLocation;
+    const dateStr = e.date.toISOString().split("T")[0];
+    return dateStr === selectedDate && e.locationId === selectedLocation;
   });
 
   if (filtered.length === 0) {
@@ -23,10 +24,20 @@ export default function EventList({ selectedLocation, selectedDate }: Props) {
     );
   }
 
+  const isGrid = columnLayout === 3;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div
+      style={{
+        display: isGrid ? "grid" : "flex",
+        flexDirection: isGrid ? undefined : "column",
+        gridTemplateColumns: isGrid ? "repeat(3, 1fr)" : undefined,
+        gap: "var(--gap)",
+        paddingBottom: 16,
+      }}
+    >
       {filtered.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventCard key={event.id} event={event} compact={isGrid} />
       ))}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { Menu, Bell, User, Search, Sun, Moon } from "lucide-react";
+import { Menu, Bell, Search, Sun, Moon, Plus, User } from "lucide-react";
 
 export default function Header() {
   const {
@@ -12,172 +12,200 @@ export default function Header() {
     theme,
     toggleTheme,
   } = useApp();
-
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-
   const isLight = theme === "light";
 
   return (
     <header
       style={{
         height: "var(--header-height)",
-        background: isLight ? "rgba(255,255,255,0.8)" : "var(--card)",
-        backdropFilter: isLight ? "blur(12px)" : "none",
-        WebkitBackdropFilter: isLight ? "blur(12px)" : "none",
-        borderBottom: "1px solid var(--card-border)",
+        background: "var(--bg-card)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",
         padding: "0 16px",
-        gap: "12px",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        boxShadow: isLight ? "0 2px 20px var(--shadow)" : "none",
-        transition: "all 0.3s",
+        gap: 10,
+        flexShrink: 0,
+        position: "relative",
+        zIndex: 10,
+        boxShadow: "0 1px 0 var(--border), var(--shadow-sm)",
       }}
     >
-      {/* Mobile menu trigger */}
+      {/* Mobile menu */}
       <button
         onClick={() => setLeftDrawer(true)}
-        style={{
-          color: "var(--muted)",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          padding: "6px",
-        }}
         className="lg:hidden"
-        aria-label="Open menu"
+        style={{
+          width: 34,
+          height: 34,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg-glass)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)",
+          cursor: "pointer",
+          color: "var(--fg-secondary)",
+          flexShrink: 0,
+        }}
       >
-        <Menu size={22} />
+        <Menu size={16} />
       </button>
 
       {/* Logo */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          flexShrink: 0,
-        }}
+        style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
       >
         <div
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: "var(--accent)",
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background:
+              "linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontWeight: 800,
-            fontSize: 13,
+            fontSize: 12,
             color: "#fff",
-            boxShadow: isLight ? "0 4px 12px rgba(108,92,231,0.35)" : "none",
+            boxShadow: "0 4px 12px var(--accent-glow)",
           }}
         >
           M
         </div>
         <span
-          style={{ fontWeight: 700, fontSize: 15, color: "var(--foreground)" }}
+          style={{
+            fontWeight: 700,
+            fontSize: 14,
+            color: "var(--fg-primary)",
+            letterSpacing: "-0.01em",
+          }}
           className="hidden sm:block"
         >
           MESP
         </span>
       </div>
 
-      {/* Date */}
-      <span
-        style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}
-        className="hidden lg:block"
-      >
-        {today}
-      </span>
-
       {/* Search */}
       <div
         style={{
           flex: 1,
+          maxWidth: 380,
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          background: isLight ? "rgba(240,242,255,0.8)" : "var(--background)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 8,
-          padding: "6px 12px",
-          maxWidth: 400,
-          transition: "all 0.3s",
+          gap: 8,
+          background: "var(--bg-glass)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)",
+          padding: "7px 12px",
+          transition: "all 0.2s",
         }}
+        onFocus={(e) =>
+          (e.currentTarget.style.borderColor = "var(--border-hover)")
+        }
+        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
       >
-        <Search size={14} style={{ color: "var(--muted)", flexShrink: 0 }} />
+        <Search size={13} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
         <input
-          placeholder="Search events, venues... / イベントを検索..."
+          placeholder="Search events, venues..."
           style={{
             background: "none",
             border: "none",
             outline: "none",
-            color: "var(--foreground)",
+            color: "var(--fg-primary)",
             fontSize: 13,
             width: "100%",
           }}
         />
       </div>
 
-      {/* Right icons */}
+      {/* Right actions */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "4px",
+          gap: 6,
           marginLeft: "auto",
           flexShrink: 0,
         }}
       >
+        {/* Create event button — logged in only */}
+        {isLoggedIn && (
+          <button
+            className="hidden sm:flex"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              background:
+                "linear-gradient(135deg, var(--accent), var(--accent2))",
+              border: "none",
+              borderRadius: "var(--radius-sm)",
+              padding: "7px 12px",
+              cursor: "pointer",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 600,
+              boxShadow: "0 4px 12px var(--accent-glow)",
+            }}
+          >
+            <Plus size={13} /> New Event
+          </button>
+        )}
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           title={isLight ? "Switch to Dark" : "Switch to Light"}
           style={{
+            width: 34,
+            height: 34,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 34,
-            height: 34,
-            borderRadius: 8,
-            border: "none",
+            background: "var(--bg-glass)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
             cursor: "pointer",
-            background: isLight
-              ? "rgba(108,92,231,0.1)"
-              : "rgba(255,255,255,0.06)",
-            color: isLight ? "var(--accent)" : "var(--muted)",
+            color: isLight ? "var(--accent)" : "var(--fg-secondary)",
             transition: "all 0.2s",
           }}
         >
-          {isLight ? <Moon size={16} /> : <Sun size={16} />}
+          {isLight ? <Moon size={15} /> : <Sun size={15} />}
         </button>
 
         {/* Notification */}
         <button
           style={{
+            width: 34,
+            height: 34,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 34,
-            height: 34,
-            borderRadius: 8,
-            background: "none",
-            border: "none",
+            background: "var(--bg-glass)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
             cursor: "pointer",
-            color: "var(--muted)",
+            color: "var(--fg-secondary)",
+            position: "relative",
           }}
         >
-          <Bell size={18} />
+          <Bell size={15} />
+          {/* Notification dot */}
+          <span
+            style={{
+              position: "absolute",
+              top: 7,
+              right: 7,
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--accent2)",
+              boxShadow: "0 0 6px var(--accent2-glow)",
+            }}
+          />
         </button>
 
         {/* User / Login */}
@@ -186,27 +214,20 @@ export default function Header() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "6px",
-            background: isLoggedIn
-              ? isLight
-                ? "rgba(108,92,231,0.1)"
-                : "var(--accent2)"
-              : "var(--accent)",
-            border: "none",
+            gap: 6,
+            background: isLoggedIn ? "var(--bg-glass)" : "var(--accent)",
+            border: isLoggedIn ? "1px solid var(--border)" : "none",
+            borderRadius: "var(--radius-sm)",
+            padding: "7px 12px",
             cursor: "pointer",
-            color: isLoggedIn && isLight ? "var(--accent)" : "#fff",
-            padding: "6px 12px",
-            borderRadius: 6,
+            color: isLoggedIn ? "var(--fg-secondary)" : "#fff",
             fontSize: 12,
             fontWeight: 600,
-            boxShadow:
-              !isLoggedIn && isLight
-                ? "0 4px 12px rgba(108,92,231,0.35)"
-                : "none",
+            boxShadow: !isLoggedIn ? "0 4px 12px var(--accent-glow)" : "none",
             transition: "all 0.2s",
           }}
         >
-          <User size={15} />
+          <User size={14} />
           <span className="hidden sm:block">
             {isLoggedIn ? "Profile" : "Login"}
           </span>

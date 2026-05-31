@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
+import { X, Sparkles } from "lucide-react";
 
 export default function AuthModal() {
   const {
@@ -29,8 +30,9 @@ export default function AuthModal() {
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "rgba(0,0,0,0.7)",
-        backdropFilter: "blur(4px)",
+        background: "rgba(5,5,10,0.8)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -40,71 +42,156 @@ export default function AuthModal() {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "var(--card)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 16,
-          padding: "32px 28px",
           width: "100%",
-          maxWidth: 380,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          maxWidth: 400,
+          background: "var(--bg-layer2)",
+          border: "1px solid var(--border-glow)",
+          borderRadius: "var(--radius-lg)",
+          padding: "32px 28px",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 60px var(--accent-glow)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <div style={{ fontSize: 36, textAlign: "center", marginBottom: 12 }}>
-          🔐
-        </div>
-        <h2
+        {/* Background glow inside modal */}
+        <div
           style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: "var(--foreground)",
-            textAlign: "center",
-            marginBottom: 8,
+            position: "absolute",
+            top: -60,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Close button */}
+        <button
+          onClick={closeAuthModal}
+          style={{
+            position: "absolute",
+            top: 14,
+            right: 14,
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: "var(--bg-glass)",
+            border: "1px solid var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "var(--fg-muted)",
           }}
         >
-          Login Required / ログインが必要です
+          <X size={13} />
+        </button>
+
+        {/* Icon */}
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 16,
+            margin: "0 auto 16px",
+            background:
+              "linear-gradient(135deg, var(--accent), var(--accent2))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 32px var(--accent-glow)",
+            position: "relative",
+          }}
+        >
+          <Sparkles size={24} color="#fff" />
+        </div>
+
+        {/* Title */}
+        <h2
+          style={{
+            fontSize: 20,
+            fontWeight: 700,
+            color: "var(--fg-primary)",
+            textAlign: "center",
+            marginBottom: 8,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Login Required
         </h2>
         <p
           style={{
-            fontSize: 13,
-            color: "var(--muted)",
+            fontSize: 12,
+            color: "var(--fg-muted)",
             textAlign: "center",
-            marginBottom: 24,
-            lineHeight: 1.6,
+            marginBottom: 6,
           }}
         >
-          Please log in to{" "}
-          <span style={{ color: "var(--accent)", fontWeight: 600 }}>
-            {label}
-          </span>
+          ログインが必要です
         </p>
 
+        {/* Action description */}
+        <div
+          style={{
+            background: "rgba(139,92,246,0.08)",
+            border: "1px solid rgba(139,92,246,0.2)",
+            borderRadius: "var(--radius-sm)",
+            padding: "10px 14px",
+            marginBottom: 24,
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--fg-secondary)",
+              lineHeight: 1.5,
+            }}
+          >
+            Please log in to{" "}
+            <span style={{ color: "var(--accent-bright)", fontWeight: 600 }}>
+              {label}
+            </span>
+          </p>
+        </div>
+
+        {/* Buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <button
             onClick={login}
             style={{
-              padding: "11px",
-              background: "var(--accent)",
+              padding: "12px",
+              width: "100%",
+              background:
+                "linear-gradient(135deg, var(--accent), var(--accent2))",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--radius-sm)",
               cursor: "pointer",
               fontWeight: 700,
               fontSize: 14,
+              boxShadow: "0 4px 20px var(--accent-glow)",
+              transition: "all 0.2s",
             }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 6px 28px var(--accent-glow)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 4px 20px var(--accent-glow)")
+            }
           >
             Mock Login (Prototype)
           </button>
           <button
             onClick={closeAuthModal}
-            style={{
-              padding: "11px",
-              background: "transparent",
-              color: "var(--muted)",
-              border: "1px solid var(--card-border)",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className="btn-secondary"
+            style={{ padding: "12px", width: "100%", textAlign: "center" }}
           >
             Cancel / キャンセル
           </button>
@@ -114,12 +201,12 @@ export default function AuthModal() {
           <p
             style={{
               fontSize: 11,
-              color: "var(--muted)",
+              color: "var(--fg-muted)",
               textAlign: "center",
               marginTop: 16,
             }}
           >
-            After login, your action will be completed automatically.
+            After login, your action will complete automatically.
           </p>
         )}
       </div>

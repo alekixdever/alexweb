@@ -40,13 +40,15 @@ function MonthGrid({
         style={{
           fontSize: 12,
           fontWeight: 600,
-          color: "var(--foreground)",
-          marginBottom: 8,
+          color: "var(--fg-secondary)",
+          marginBottom: 10,
           textAlign: "center",
         }}
       >
         {monthLabel}
       </p>
+
+      {/* Day headers */}
       <div
         style={{
           display: "grid",
@@ -60,15 +62,18 @@ function MonthGrid({
             key={d}
             style={{
               fontSize: 10,
-              color: "var(--muted)",
+              color: "var(--fg-muted)",
               textAlign: "center",
               padding: "2px 0",
+              fontWeight: 500,
             }}
           >
             {d}
           </div>
         ))}
       </div>
+
+      {/* Date cells */}
       <div
         style={{
           display: "grid",
@@ -89,21 +94,35 @@ function MonthGrid({
                 width: "100%",
                 aspectRatio: "1",
                 fontSize: 11,
-                border: "none",
+                border:
+                  isToday && !isSelected
+                    ? "1px solid rgba(139,92,246,0.4)"
+                    : "1px solid transparent",
                 cursor: "pointer",
-                borderRadius: 4,
+                borderRadius: 6,
                 fontWeight: isToday ? 700 : 400,
                 background: isSelected
                   ? "var(--accent)"
                   : isToday
-                    ? "rgba(233,69,96,0.2)"
+                    ? "rgba(139,92,246,0.12)"
                     : "transparent",
                 color: isSelected
                   ? "#fff"
                   : isToday
-                    ? "var(--accent)"
-                    : "var(--foreground)",
-                transition: "all 0.1s",
+                    ? "var(--accent-bright)"
+                    : "var(--fg-secondary)",
+                boxShadow: isSelected ? "0 2px 8px var(--accent-glow)" : "none",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected)
+                  e.currentTarget.style.background = "var(--bg-glass)";
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected)
+                  e.currentTarget.style.background = isToday
+                    ? "rgba(139,92,246,0.12)"
+                    : "transparent";
               }}
             >
               {day}
@@ -119,24 +138,14 @@ export default function Calendar({ selectedDate, onSelect }: Props) {
   const now = new Date();
   const thisYear = now.getFullYear();
   const thisMonth = now.getMonth();
-
   const nextMonthDate = new Date(thisYear, thisMonth + 1, 1);
   const nextYear = nextMonthDate.getFullYear();
   const nextMonth = nextMonthDate.getMonth();
 
   return (
-    <div style={{ padding: "12px 16px" }}>
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--muted)",
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          marginBottom: 12,
-          textTransform: "uppercase",
-        }}
-      >
-        Date
+    <div>
+      <p className="label-xs" style={{ marginBottom: 12 }}>
+        Date / 日付
       </p>
       <MonthGrid
         year={thisYear}
@@ -145,11 +154,7 @@ export default function Calendar({ selectedDate, onSelect }: Props) {
         onSelect={onSelect}
       />
       <div
-        style={{
-          height: 1,
-          background: "var(--card-border)",
-          margin: "8px 0 16px",
-        }}
+        style={{ height: 1, background: "var(--border)", margin: "4px 0 16px" }}
       />
       <MonthGrid
         year={nextYear}
