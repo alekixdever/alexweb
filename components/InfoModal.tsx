@@ -124,10 +124,43 @@ function CompanyPage() {
   return (
     <div>
       <SectionTitle en="Company Information" ja="会社情報" />
+      {/* Logo */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            width: 200,
+            height: 200,
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+            border: "1px solid var(--border)",
+            background: "#f5f0e8",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          <img
+            src="/tenjinshosai.png"
+            alt="天神書齋 Tenjin Shosai"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              padding: 8,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Company photo */}
       <div
         style={{
           width: "100%",
-          height: 200,
+          height: 180,
           borderRadius: "var(--radius)",
           overflow: "hidden",
           marginBottom: 20,
@@ -210,12 +243,15 @@ function AboutPage() {
       <div
         style={{
           width: "100%",
-          height: 220,
           borderRadius: "var(--radius)",
           overflow: "hidden",
           marginBottom: 20,
           border: "1px solid var(--border)",
           position: "relative",
+          maxHeight: 400,
+          display: "flex",
+          justifyContent: "center",
+          background: "var(--bg-glass)",
         }}
       >
         <img
@@ -223,17 +259,9 @@ function AboutPage() {
           alt="About Us"
           style={{
             width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "top",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to top, rgba(10,10,15,0.6) 0%, transparent 60%)",
+            height: "auto",
+            objectFit: "contain",
+            display: "block",
           }}
         />
       </div>
@@ -889,21 +917,65 @@ export default function InfoModal({ open, onClose }: Props) {
           {!activePage ? (
             // Menu list
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--fg-muted)",
-                  marginBottom: 8,
-                  lineHeight: 1.6,
-                  textAlign: "center",
-                }}
-              >
-                Welcome to MESP — Connecting people through events and culture.
-                <br />
-                <span style={{ fontSize: 11 }}>
-                  イベントと文化で人々をつなぐプラットフォームへようこそ。
-                </span>
-              </p>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <div
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    background: "#f5f0e8",
+                    border: "1px solid var(--border)",
+                    margin: "0 auto 12px",
+                    boxShadow: "var(--shadow-md)",
+                  }}
+                >
+                  <img
+                    src="/tenjinshosai.png"
+                    alt="天神書齋"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      padding: 4,
+                    }}
+                  />
+                </div>
+                <p
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "var(--fg-primary)",
+                    marginBottom: 2,
+                    fontFamily: "'Noto Serif JP', serif",
+                  }}
+                >
+                  天神書齋
+                </p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--fg-muted)",
+                    letterSpacing: "0.08em",
+                    marginBottom: 8,
+                  }}
+                >
+                  Tenjin Shosai
+                </p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--fg-muted)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Connecting people through events and culture.
+                  <br />
+                  <span style={{ fontSize: 11 }}>
+                    イベントと文化で人々をつなぐプラットフォーム。
+                  </span>
+                </p>
+              </div>
               {menuItems.map((item) => (
                 <button
                   key={item.id}

@@ -70,12 +70,13 @@ export default function Header() {
             (e.currentTarget.style.background = "var(--bg-glass)")
           }
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-          title="About MESP"
+          title="About 天神書齋"
         >
+          {/* Icon */}
           <div
             style={{
-              width: 30,
-              height: 30,
+              width: 34,
+              height: 34,
               borderRadius: 8,
               flexShrink: 0,
               background:
@@ -83,25 +84,41 @@ export default function Header() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontWeight: 800,
-              fontSize: 12,
+              fontWeight: 900,
+              fontSize: 16,
               color: "#fff",
               boxShadow: "0 4px 12px var(--accent-glow)",
+              fontFamily: "serif",
             }}
           >
-            M
+            天
           </div>
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: 14,
-              color: "var(--fg-primary)",
-              letterSpacing: "-0.01em",
-            }}
-            className="hidden sm:block"
-          >
-            MESP
-          </span>
+
+          {/* Name */}
+          <div className="hidden sm:block">
+            <p
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: "var(--fg-primary)",
+                letterSpacing: "0.02em",
+                lineHeight: 1.1,
+                fontFamily: "serif",
+              }}
+            >
+              天神書齋
+            </p>
+            <p
+              style={{
+                fontSize: 10,
+                color: "var(--fg-muted)",
+                letterSpacing: "0.08em",
+                lineHeight: 1,
+              }}
+            >
+              Tenjin Shosai
+            </p>
+          </div>
         </button>
 
         {/* Search */}
