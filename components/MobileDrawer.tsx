@@ -49,7 +49,7 @@ export default function MobileDrawer({ side, children }: Props) {
           bottom: 0,
           zIndex: 90,
           [side]: 0,
-          width: "var(--sidebar-width)",
+          width: "min(300px, 88vw)",
           background: "var(--bg-layer1)",
           borderRight: side === "left" ? "1px solid var(--border)" : "none",
           borderLeft: side === "right" ? "1px solid var(--border)" : "none",
