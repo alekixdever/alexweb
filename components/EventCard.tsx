@@ -383,7 +383,6 @@ export default function EventCard({ event, compact = false }: Props) {
                   width: 20,
                   height: 20,
                   borderRadius: "50%",
-                  border: "2px solid var(--bg-card)",
                   marginLeft: -6,
                   background: "var(--bg-glass)",
                   border: "2px solid var(--border)",
