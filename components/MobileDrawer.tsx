@@ -25,7 +25,7 @@ export default function MobileDrawer({ side, children }: Props) {
   }, [isOpen]);
 
   return (
-    <>
+    <div className="lg:hidden">
       {/* Backdrop */}
       {isOpen && (
         <div
@@ -68,7 +68,6 @@ export default function MobileDrawer({ side, children }: Props) {
           gap: "var(--gap)",
         }}
       >
-        {/* Close button */}
         <div
           style={{ display: "flex", justifyContent: "flex-end", flexShrink: 0 }}
         >
@@ -92,6 +91,6 @@ export default function MobileDrawer({ side, children }: Props) {
         </div>
         {children}
       </div>
-    </>
+    </div>
   );
 }

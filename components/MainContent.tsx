@@ -59,7 +59,10 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
               color: "var(--fg-primary)",
             }}
           >
-            Events / イベント
+            Events{" "}
+            <span style={{ color: "var(--fg-muted)", fontWeight: 400 }}>
+              / イベント
+            </span>
           </h2>
           <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
             {location?.name ?? selectedLocation} · {dateLabel}
@@ -80,7 +83,7 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
               border: `1px solid ${count > 0 ? "rgba(52,211,153,0.25)" : "var(--border)"}`,
             }}
           >
-            {count} {count === 1 ? "event" : "events"}
+            {count} {count === 1 ? "event / 件" : "events / 件"}
           </span>
 
           {/* Layout toggle — desktop only */}

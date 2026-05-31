@@ -109,7 +109,7 @@ export default function Header() {
       >
         <Search size={13} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
         <input
-          placeholder="Search events, venues..."
+          placeholder="Search events / イベントを検索..."
           style={{
             background: "none",
             border: "none",
