@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -12,7 +11,6 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleSignup = async () => {
@@ -26,18 +24,13 @@ export default function SignupPage() {
       );
       return;
     }
-
     setLoading(true);
     setError("");
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { name },
-      },
+      options: { data: { name } },
     });
-
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -51,7 +44,7 @@ export default function SignupPage() {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          minHeight: "100svh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -120,7 +113,7 @@ export default function SignupPage() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: "100svh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -156,7 +149,6 @@ export default function SignupPage() {
           }}
         />
 
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div
             style={{

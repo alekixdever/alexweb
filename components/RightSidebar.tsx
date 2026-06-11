@@ -10,9 +10,7 @@ export default function RightSidebar() {
   const displayName =
     user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
 
-  const avatarUrl =
-    user?.user_metadata?.avatar_url ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
+  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   if (!isLoggedIn) {
     return (
@@ -111,7 +109,6 @@ export default function RightSidebar() {
         overflowY: "auto",
       }}
     >
-      {/* Profile card */}
       <div className="float-card" style={{ padding: 16, flexShrink: 0 }}>
         <div
           style={{
@@ -196,15 +193,14 @@ export default function RightSidebar() {
         <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
       </div>
 
-      {/* Contacts card */}
       <div className="float-card" style={{ padding: "14px 0", flex: 1 }}>
         <p className="label-xs" style={{ padding: "0 16px 10px" }}>
           Contacts / コンタクト
         </p>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {contactList.map((user, i) => (
+          {contactList.map((u, i) => (
             <div
-              key={user.id}
+              key={u.id}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -222,8 +218,8 @@ export default function RightSidebar() {
             >
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={u.avatar}
+                  alt={u.name}
                   style={{
                     width: 34,
                     height: 34,
@@ -245,17 +241,15 @@ export default function RightSidebar() {
                   }}
                 />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--fg-secondary)",
-                  }}
-                >
-                  {user.name}
-                </p>
-              </div>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--fg-secondary)",
+                }}
+              >
+                {u.name}
+              </p>
             </div>
           ))}
         </div>
