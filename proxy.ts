@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,12 +25,10 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refresh session
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes — redirect to login if not authenticated
   const protectedPaths = ["/profile", "/create-event"];
   const isProtected = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p),
