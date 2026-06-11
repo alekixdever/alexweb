@@ -12,7 +12,7 @@ import MobileDrawer from "@/components/MobileDrawer";
 export default function Home() {
   const todayStr = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [selectedLocation, setSelectedLocation] = useState("kyoto-station");
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const { setLeftDrawer } = useApp();
 
   const handleLocationSelect = (id: string) => {

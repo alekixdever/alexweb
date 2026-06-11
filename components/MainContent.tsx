@@ -13,6 +13,7 @@ interface Props {
 
 export default function MainContent({ selectedLocation, selectedDate }: Props) {
   const { columnLayout, setColumnLayout } = useApp();
+  const isAll = selectedLocation === "all";
   const location = locations.find((l) => l.id === selectedLocation);
 
   const count = events.filter((e) => {
@@ -65,7 +66,10 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
             </span>
           </h2>
           <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
-            {location?.name ?? selectedLocation} · {dateLabel}
+            {isAll
+              ? "All Venues / 全会場"
+              : (location?.name ?? selectedLocation)}{" "}
+            · {dateLabel}
           </p>
         </div>
 

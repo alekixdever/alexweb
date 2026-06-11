@@ -11,7 +11,12 @@ interface Props {
   compact?: boolean;
 }
 
-export default function EventCard({ event, compact = false }: Props) {
+export default function EventCard({
+  event,
+  compact = false,
+  locationColor,
+  locationColorBg,
+}: Props) {
   const { isLoggedIn, openAuthModal } = useApp();
   const [joined, setJoined] = useState(false);
   const [count, setCount] = useState(event.participantsCount);
@@ -281,56 +286,30 @@ export default function EventCard({ event, compact = false }: Props) {
           </div>
 
           {/* Location pill */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "rgba(236,72,153,0.08)",
-              border: "1px solid rgba(236,72,153,0.2)",
-              borderRadius: "var(--radius-sm)",
-              padding: "6px 10px",
-            }}
-          >
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 6,
-                flexShrink: 0,
-                background: "rgba(236,72,153,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MapPin size={12} style={{ color: "var(--accent2)" }} />
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: locationColorBg ?? location?.colorBg ?? "rgba(236,72,153,0.08)",
+            border: `1px solid ${locationColor ?? location?.color ?? "rgba(236,72,153,0.2)"}30`,
+            borderRadius: "var(--radius-sm)",
+            padding: "6px 10px",
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+              background: `${locationColor ?? location?.color ?? "#f472b6"}20`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <MapPin size={12} style={{ color: locationColor ?? location?.color ?? "var(--accent2)" }} />
             </div>
             <div>
-              <p
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "var(--accent2)",
-                  lineHeight: 1.2,
-                }}
-              >
+              <p style={{ fontSize: 12, fontWeight: 600, color: locationColor ?? location?.color ?? "var(--accent2)", lineHeight: 1.2 }}>
                 {location?.name}
               </p>
-              <p
-                style={{
-                  fontSize: 10,
-                  color: "var(--fg-muted)",
-                  lineHeight: 1.2,
-                }}
-              >
+              <p style={{ fontSize: 10, color: "var(--fg-muted)", lineHeight: 1.2 }}>
                 {location?.nameJa}
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Participants */}
+         {/* Participants */}
         <button
           onClick={handleViewParticipants}
           style={{

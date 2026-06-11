@@ -1,7 +1,7 @@
 "use client";
 
 import { locations } from "@/data/locations";
-import { MapPin } from "lucide-react";
+import { MapPin, LayoutGrid } from "lucide-react";
 
 interface Props {
   selectedLocation: string;
@@ -9,10 +9,20 @@ interface Props {
 }
 
 export default function LocationList({ selectedLocation, onSelect }: Props) {
+  const allItem = {
+    id: "all",
+    name: "All Venues",
+    nameJa: "全会場",
+    color: "var(--accent-bright)",
+    colorBg: "rgba(139,92,246,0.12)",
+  };
+  const items = [allItem, ...locations];
+
   return (
     <div>
-      {locations.map((loc) => {
+      {items.map((loc) => {
         const isActive = selectedLocation === loc.id;
+        const isAll = loc.id === "all";
         return (
           <button
             key={loc.id}
@@ -27,11 +37,9 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
               border: "none",
               cursor: "pointer",
               textAlign: "left",
-              backgroundColor: isActive
-                ? "rgba(139,92,246,0.1)"
-                : "transparent",
+              backgroundColor: isActive ? loc.colorBg : "transparent",
               borderLeft: isActive
-                ? "2px solid var(--accent)"
+                ? `2px solid ${loc.color}`
                 : "2px solid transparent",
               transition: "all 0.15s",
             }}
@@ -50,22 +58,25 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
                 height: 32,
                 borderRadius: 8,
                 flexShrink: 0,
-                background: isActive
-                  ? "rgba(139,92,246,0.2)"
-                  : "var(--bg-glass)",
-                border: `1px solid ${isActive ? "rgba(139,92,246,0.4)" : "var(--border)"}`,
+                background: isActive ? loc.colorBg : "var(--bg-glass)",
+                border: `1px solid ${isActive ? loc.color : "var(--border)"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "all 0.15s",
               }}
             >
-              <MapPin
-                size={13}
-                style={{
-                  color: isActive ? "var(--accent-bright)" : "var(--fg-muted)",
-                }}
-              />
+              {isAll ? (
+                <LayoutGrid
+                  size={13}
+                  style={{ color: isActive ? loc.color : "var(--fg-muted)" }}
+                />
+              ) : (
+                <MapPin
+                  size={13}
+                  style={{ color: isActive ? loc.color : "var(--fg-muted)" }}
+                />
+              )}
             </div>
             <div>
               <div
@@ -78,7 +89,7 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
                 {loc.name}
               </div>
               <div style={{ fontSize: 10, color: "var(--fg-muted)" }}>
-                {loc.region}
+                {"nameJa" in loc ? loc.nameJa : ""}
               </div>
             </div>
             {isActive && (
@@ -88,8 +99,8 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
                   width: 6,
                   height: 6,
                   borderRadius: "50%",
-                  background: "var(--accent)",
-                  boxShadow: "0 0 8px var(--accent-glow)",
+                  background: loc.color,
+                  boxShadow: `0 0 8px ${loc.color}`,
                 }}
               />
             )}
