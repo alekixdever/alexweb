@@ -9,6 +9,8 @@ import { useState } from "react";
 interface Props {
   event: Event;
   compact?: boolean;
+  locationColor?: string;
+  locationColorBg?: string;
 }
 
 export default function EventCard({
@@ -53,6 +55,10 @@ export default function EventCard({
     day: "numeric",
     weekday: "short",
   });
+
+  const locColor = locationColor ?? location?.color ?? "#f472b6";
+  const locColorBg =
+    locationColorBg ?? location?.colorBg ?? "rgba(244,114,182,0.12)";
 
   return (
     <article
@@ -143,8 +149,7 @@ export default function EventCard({
                   gap: 3,
                 }}
               >
-                <Tag size={8} />
-                {tag}
+                <Tag size={8} /> {tag}
                 <span style={{ opacity: 0.6, fontSize: 9 }}>
                   / {event.tagsJa[i]}
                 </span>
@@ -203,7 +208,8 @@ export default function EventCard({
             ))}
           </div>
         )}
-        {/* Title — bilingual */}
+
+        {/* Title */}
         <h3
           style={{
             fontSize: compact ? 13 : 15,
@@ -226,7 +232,8 @@ export default function EventCard({
         >
           {event.titleJa}
         </p>
-        {/* ── Date + Location pills — prominent ── */}
+
+        {/* Date + Location pills */}
         <div
           style={{
             display: "flex",
@@ -286,30 +293,56 @@ export default function EventCard({
           </div>
 
           {/* Location pill */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: locationColorBg ?? location?.colorBg ?? "rgba(236,72,153,0.08)",
-            border: `1px solid ${locationColor ?? location?.color ?? "rgba(236,72,153,0.2)"}30`,
-            borderRadius: "var(--radius-sm)",
-            padding: "6px 10px",
-          }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-              background: `${locationColor ?? location?.color ?? "#f472b6"}20`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <MapPin size={12} style={{ color: locationColor ?? location?.color ?? "var(--accent2)" }} />
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: locColorBg,
+              border: `1px solid ${locColor}50`,
+              borderRadius: "var(--radius-sm)",
+              padding: "6px 10px",
+            }}
+          >
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                flexShrink: 0,
+                background: `${locColor}25`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MapPin size={12} style={{ color: locColor }} />
             </div>
             <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: locationColor ?? location?.color ?? "var(--accent2)", lineHeight: 1.2 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: locColor,
+                  lineHeight: 1.2,
+                }}
+              >
                 {location?.name}
               </p>
-              <p style={{ fontSize: 10, color: "var(--fg-muted)", lineHeight: 1.2 }}>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "var(--fg-muted)",
+                  lineHeight: 1.2,
+                }}
+              >
                 {location?.nameJa}
               </p>
             </div>
           </div>
-         {/* Participants */}
+        </div>
+
+        {/* Participants */}
         <button
           onClick={handleViewParticipants}
           style={{
@@ -324,7 +357,6 @@ export default function EventCard({
             padding: 0,
           }}
         >
-          {/* Avatar stack */}
           <div style={{ display: "flex", alignItems: "center" }}>
             {Array.from({ length: Math.min(3, count) }).map((_, i) => (
               <div
@@ -388,7 +420,8 @@ export default function EventCard({
             )}
           </span>
         </button>
-        {/* Description — hidden in compact */}
+
+        {/* Description */}
         {!compact && (
           <p
             style={{
@@ -422,6 +455,7 @@ export default function EventCard({
             {event.descriptionJa}
           </p>
         )}
+
         {/* Join button */}
         <button
           onClick={handleJoin}
