@@ -1,16 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { X, Sparkles } from "lucide-react";
 
 export default function AuthModal() {
-  const {
-    authModalOpen,
-    authModalAction,
-    pendingAction,
-    closeAuthModal,
-    login,
-  } = useApp();
+  const { authModalOpen, authModalAction, pendingAction, closeAuthModal } =
+    useApp();
+  const router = useRouter();
 
   if (!authModalOpen) return null;
 
@@ -53,7 +50,7 @@ export default function AuthModal() {
           overflow: "hidden",
         }}
       >
-        {/* Background glow inside modal */}
+        {/* Background glow */}
         <div
           style={{
             position: "absolute",
@@ -69,7 +66,7 @@ export default function AuthModal() {
           }}
         />
 
-        {/* Close button */}
+        {/* Close */}
         <button
           onClick={closeAuthModal}
           style={{
@@ -134,7 +131,7 @@ export default function AuthModal() {
           ログインが必要です
         </p>
 
-        {/* Action description */}
+        {/* Action */}
         <div
           style={{
             background: "rgba(139,92,246,0.08)",
@@ -162,7 +159,10 @@ export default function AuthModal() {
         {/* Buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <button
-            onClick={login}
+            onClick={() => {
+              closeAuthModal();
+              router.push("/login");
+            }}
             style={{
               padding: "12px",
               width: "100%",
@@ -177,16 +177,8 @@ export default function AuthModal() {
               boxShadow: "0 4px 20px var(--accent-glow)",
               transition: "all 0.2s",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 6px 28px var(--accent-glow)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 4px 20px var(--accent-glow)")
-            }
           >
-            Mock Login (Prototype)
+            Log In / ログイン
           </button>
           <button
             onClick={closeAuthModal}

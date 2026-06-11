@@ -1,5 +1,7 @@
 "use client";
 
+// 先頭に追加
+import { createClient } from "@/lib/supabase/client";
 import {
   createContext,
   useContext,
@@ -55,15 +57,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingAction: null,
     leftDrawerOpen: false,
     rightDrawerOpen: false,
-    theme: "dark",
+    theme: getAutoTheme(),
     columnLayout: 1,
   });
-
-  // Auto theme on mount
-  useEffect(() => {
-    const autoTheme = getAutoTheme();
-    setState((prev) => ({ ...prev, theme: autoTheme }));
-  }, []);
 
   // Apply theme to <html>
   useEffect(() => {
@@ -84,11 +80,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
+  const supabase = createClient();
+
   const login = () =>
     setState((prev) => ({ ...prev, isLoggedIn: true, authModalOpen: false }));
 
-  const logout = () =>
+  const logout = async () => {
+    await supabase.auth.signOut();
     setState((prev) => ({ ...prev, isLoggedIn: false, pendingAction: null }));
+  };
 
   const openAuthModal = (action: string, pending: PendingAction) =>
     setState((prev) => ({

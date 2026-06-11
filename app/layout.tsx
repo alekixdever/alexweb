@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "天神書齋 Tenjin Shosai",
@@ -14,9 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-TW">
+    <html lang="ja">
       <body>
-        <AppProvider>{children}</AppProvider>
+        <AuthProvider>
+          <AppProvider>{children}</AppProvider>
+        </AuthProvider>
       </body>
     </html>
   );
