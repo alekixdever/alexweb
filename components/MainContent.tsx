@@ -35,8 +35,8 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
         minWidth: 0,
+        minHeight: 0,
       }}
     >
       {/* Top bar */}
@@ -130,7 +130,7 @@ export default function MainContent({ selectedLocation, selectedDate }: Props) {
       </div>
 
       {/* Scrollable event list */}
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: 2 }}>
+      <div style={{ overflowY: "auto", paddingRight: 2, paddingBottom: 80 }}>
         <EventList
           selectedLocation={selectedLocation}
           selectedDate={selectedDate}

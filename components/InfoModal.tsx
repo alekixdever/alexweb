@@ -155,9 +155,7 @@ function CompanyPage() {
           />
         </div>
       </div>
-
-      {/* Company photo */}
-      {/* Company photos */}
+      　{/* Company photos */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <div
           style={{

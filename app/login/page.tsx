@@ -252,7 +252,7 @@ export default function LoginPage() {
               textAlign: "center",
             }}
           >
-            Don't have an account?{" "}
+            Dont have an account?{" "}
             <Link
               href="/signup"
               style={{

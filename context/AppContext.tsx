@@ -1,7 +1,5 @@
 "use client";
 
-// 先頭に追加
-import { createClient } from "@/lib/supabase/client";
 import {
   createContext,
   useContext,
@@ -9,6 +7,8 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 type PendingActionType = "JOIN_EVENT" | "COMMENT" | "VIEW_PARTICIPANTS";
 type Theme = "dark" | "light";
@@ -22,6 +22,7 @@ interface PendingAction {
 
 interface AppState {
   isLoggedIn: boolean;
+  user: User | null;
   authModalOpen: boolean;
   authModalAction: string;
   pendingAction: PendingAction | null;
@@ -33,7 +34,7 @@ interface AppState {
 
 interface AppContextType extends AppState {
   login: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   openAuthModal: (action: string, pending: PendingAction) => void;
   closeAuthModal: () => void;
   setLeftDrawer: (open: boolean) => void;
@@ -50,8 +51,11 @@ function getAutoTheme(): Theme {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const supabase = createClient();
+
   const [state, setState] = useState<AppState>({
     isLoggedIn: false,
+    user: null,
     authModalOpen: false,
     authModalAction: "",
     pendingAction: null,
@@ -60,6 +64,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     theme: getAutoTheme(),
     columnLayout: 1,
   });
+
+  // Listen to Supabase Auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setState((prev) => ({
+        ...prev,
+        isLoggedIn: !!session?.user,
+        user: session?.user ?? null,
+      }));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setState((prev) => ({
+        ...prev,
+        isLoggedIn: !!session?.user,
+        user: session?.user ?? null,
+        authModalOpen: false,
+      }));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Apply theme to <html>
   useEffect(() => {
@@ -71,23 +99,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(() => {
       setState((prev) => {
         const autoTheme = getAutoTheme();
-        if (prev.theme !== autoTheme) {
-          return { ...prev, theme: autoTheme };
-        }
+        if (prev.theme !== autoTheme) return { ...prev, theme: autoTheme };
         return prev;
       });
     }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const supabase = createClient();
-
-  const login = () =>
-    setState((prev) => ({ ...prev, isLoggedIn: true, authModalOpen: false }));
+  const login = () => setState((prev) => ({ ...prev, authModalOpen: false }));
 
   const logout = async () => {
     await supabase.auth.signOut();
-    setState((prev) => ({ ...prev, isLoggedIn: false, pendingAction: null }));
+    setState((prev) => ({
+      ...prev,
+      isLoggedIn: false,
+      user: null,
+      pendingAction: null,
+    }));
   };
 
   const openAuthModal = (action: string, pending: PendingAction) =>

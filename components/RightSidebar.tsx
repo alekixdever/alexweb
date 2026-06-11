@@ -1,11 +1,18 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { mockUser, contactList } from "@/data/users";
+import { contactList } from "@/data/users";
 import { LogIn, LogOut } from "lucide-react";
 
 export default function RightSidebar() {
-  const { isLoggedIn, openAuthModal, logout } = useApp();
+  const { isLoggedIn, openAuthModal, logout, user } = useApp();
+
+  const displayName =
+    user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
+
+  const avatarUrl =
+    user?.user_metadata?.avatar_url ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   if (!isLoggedIn) {
     return (
@@ -31,7 +38,6 @@ export default function RightSidebar() {
             textAlign: "center",
           }}
         >
-          {/* Glow orb */}
           <div
             style={{
               width: 64,
@@ -48,7 +54,6 @@ export default function RightSidebar() {
           >
             👋
           </div>
-
           <div>
             <p
               style={{
@@ -69,9 +74,12 @@ export default function RightSidebar() {
             >
               Log in to join events, view participants, and connect with
               members.
+              <br />
+              <span style={{ fontSize: 11 }}>
+                ログインしてイベントに参加しましょう。
+              </span>
             </p>
           </div>
-
           <button
             onClick={() =>
               openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" })
@@ -110,13 +118,13 @@ export default function RightSidebar() {
             display: "flex",
             alignItems: "center",
             gap: 10,
-            marginBottom: 14,
+            marginBottom: 8,
           }}
         >
           <div style={{ position: "relative", flexShrink: 0 }}>
             <img
-              src={mockUser.avatar}
-              alt={mockUser.name}
+              src={avatarUrl}
+              alt={displayName}
               style={{
                 width: 44,
                 height: 44,
@@ -146,15 +154,28 @@ export default function RightSidebar() {
                 fontWeight: 700,
                 color: "var(--fg-primary)",
                 marginBottom: 2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
-              {mockUser.name}
+              {displayName}
             </p>
-            <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--fg-muted)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {user?.email}
+            </p>
           </div>
           <button
             onClick={logout}
-            title="Logout"
+            title="Logout / ログアウト"
             style={{
               width: 28,
               height: 28,
@@ -172,6 +193,7 @@ export default function RightSidebar() {
             <LogOut size={12} />
           </button>
         </div>
+        <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
       </div>
 
       {/* Contacts card */}

@@ -26,7 +26,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh", overflow: "hidden" }}>
+    <div style={{ position: "relative", minHeight: "100svh" }}>
       {/* Background sits behind everything */}
       <div
         style={{
@@ -44,7 +44,7 @@ export default function Home() {
           zIndex: 1,
           display: "flex",
           flexDirection: "column",
-          height: "100vh",
+          minHeight: "100svh",
         }}
       >
         <Header />
@@ -53,9 +53,9 @@ export default function Home() {
           style={{
             display: "flex",
             flex: 1,
-            overflow: "hidden",
             gap: "var(--gap)",
             padding: "var(--gap)",
+            minHeight: 0,
           }}
         >
           {/* Desktop Left Sidebar */}

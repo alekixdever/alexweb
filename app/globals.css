@@ -109,7 +109,6 @@ body {
         -apple-system,
         sans-serif;
     -webkit-font-smoothing: antialiased;
-    overflow: hidden;
     transition:
         background 0.4s ease,
         color 0.3s ease;

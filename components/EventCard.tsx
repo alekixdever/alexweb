@@ -198,7 +198,6 @@ export default function EventCard({ event, compact = false }: Props) {
             ))}
           </div>
         )}
-
         {/* Title — bilingual */}
         <h3
           style={{
@@ -222,7 +221,6 @@ export default function EventCard({ event, compact = false }: Props) {
         >
           {event.titleJa}
         </p>
-
         {/* ── Date + Location pills — prominent ── */}
         <div
           style={{
@@ -333,7 +331,6 @@ export default function EventCard({ event, compact = false }: Props) {
         </div>
 
         {/* Participants */}
-        {/* Participants */}
         <button
           onClick={handleViewParticipants}
           style={{
@@ -412,7 +409,6 @@ export default function EventCard({ event, compact = false }: Props) {
             )}
           </span>
         </button>
-
         {/* Description — hidden in compact */}
         {!compact && (
           <p
@@ -447,7 +443,6 @@ export default function EventCard({ event, compact = false }: Props) {
             {event.descriptionJa}
           </p>
         )}
-
         {/* Join button */}
         <button
           onClick={handleJoin}
