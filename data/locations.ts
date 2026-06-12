@@ -13,7 +13,7 @@ export const locations: Location[] = [
     name: "Kyoto Station",
     nameJa: "京都駅",
     region: "Kyoto 京都",
-    color: "#a78bfa",
+    color: "#EBA118",
     colorBg: "rgba(167,139,250,0.12)",
   },
   {

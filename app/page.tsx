@@ -13,6 +13,7 @@ export default function Home() {
   const todayStr = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const { setLeftDrawer } = useApp();
 
   const handleLocationSelect = (id: string) => {
@@ -25,9 +26,13 @@ export default function Home() {
     setLeftDrawer(false);
   };
 
+  const handleCategorySelect = (id: string) => {
+    setSelectedCategory(id);
+    setLeftDrawer(false);
+  };
+
   return (
     <div style={{ position: "relative", minHeight: "100svh" }}>
-      {/* Background sits behind everything */}
       <div
         style={{
           position: "fixed",
@@ -37,7 +42,6 @@ export default function Home() {
         }}
       />
 
-      {/* Layout */}
       <div
         style={{
           position: "relative",
@@ -63,18 +67,19 @@ export default function Home() {
             <LeftSidebar
               selectedLocation={selectedLocation}
               selectedDate={selectedDate}
+              selectedCategory={selectedCategory}
               onLocationSelect={setSelectedLocation}
               onDateSelect={setSelectedDate}
+              onCategorySelect={setSelectedCategory}
             />
           </div>
 
-          {/* Main Content */}
           <MainContent
             selectedLocation={selectedLocation}
             selectedDate={selectedDate}
+            selectedCategory={selectedCategory}
           />
 
-          {/* Desktop Right Sidebar */}
           <div className="hidden lg:block" style={{ flexShrink: 0 }}>
             <RightSidebar />
           </div>
@@ -86,8 +91,10 @@ export default function Home() {
         <LeftSidebar
           selectedLocation={selectedLocation}
           selectedDate={selectedDate}
+          selectedCategory={selectedCategory}
           onLocationSelect={handleLocationSelect}
           onDateSelect={handleDateSelect}
+          onCategorySelect={handleCategorySelect}
         />
       </MobileDrawer>
 

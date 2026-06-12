@@ -23,6 +23,7 @@ interface PendingAction {
 interface AppState {
   isLoggedIn: boolean;
   user: User | null;
+  userRole: "member" | "admin" | "super_admin" | null; // 新增
   authModalOpen: boolean;
   authModalAction: string;
   pendingAction: PendingAction | null;
@@ -34,6 +35,7 @@ interface AppState {
 
 interface AppContextType extends AppState {
   login: () => void;
+  userRole: "member" | "admin" | "super_admin" | null; // 新增
   logout: () => Promise<void>;
   openAuthModal: (action: string, pending: PendingAction) => void;
   closeAuthModal: () => void;
@@ -56,6 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
     isLoggedIn: false,
     user: null,
+    userRole: null, // 新增
     authModalOpen: false,
     authModalAction: "",
     pendingAction: null,
@@ -64,26 +67,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
     theme: getAutoTheme(),
     columnLayout: 1,
   });
-
-  // Listen to Supabase Auth state
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState((prev) => ({
-        ...prev,
-        isLoggedIn: !!session?.user,
-        user: session?.user ?? null,
-      }));
-    });
+    const fetchSessionAndRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        setState((prev) => ({
+          ...prev,
+          isLoggedIn: true,
+          user: session.user,
+          userRole: profile?.role ?? "member",
+        }));
+      } else {
+        setState((prev) => ({
+          ...prev,
+          isLoggedIn: false,
+          user: null,
+          userRole: null,
+        }));
+      }
+    };
+    fetchSessionAndRole();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setState((prev) => ({
-        ...prev,
-        isLoggedIn: !!session?.user,
-        user: session?.user ?? null,
-        authModalOpen: false,
-      }));
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        setState((prev) => ({
+          ...prev,
+          isLoggedIn: true,
+          user: session.user,
+          userRole: profile?.role ?? "member",
+          authModalOpen: false,
+        }));
+      } else {
+        setState((prev) => ({
+          ...prev,
+          isLoggedIn: false,
+          user: null,
+          userRole: null,
+        }));
+      }
     });
 
     return () => subscription.unsubscribe();

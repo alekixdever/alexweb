@@ -10,9 +10,14 @@ import { MapPin } from "lucide-react";
 interface Props {
   selectedLocation: string;
   selectedDate: string;
+  selectedCategory: string;
 }
 
-export default function EventList({ selectedLocation, selectedDate }: Props) {
+export default function EventList({
+  selectedLocation,
+  selectedDate,
+  selectedCategory,
+}: Props) {
   const { columnLayout } = useApp();
   const isAll = selectedLocation === "all";
 

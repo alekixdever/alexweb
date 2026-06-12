@@ -4,7 +4,40 @@
    DARK THEME (default)
 ══════════════════════════════════════ */
 :root {
-    --bg-base: #0a0a0f;
+    --bg-base:
+        radial-gradient(
+            at 20% 20%,
+            rgba(52, 211, 153, 0.12) 0px,
+            transparent 40%
+        ),
+        /* 綠光 */
+        radial-gradient(
+                at 80% 40%,
+                rgba(59, 130, 246, 0.15) 0px,
+                transparent 50%
+            ),
+        /* 藍光 */
+        radial-gradient(
+                at 40% 80%,
+                rgba(139, 92, 246, 0.1) 0px,
+                transparent 50%
+            ),
+        /* 紫光 */ #09090e;
+    /*--bg-base:
+        radial-gradient(
+            at 0% 0%,
+            rgba(139, 92, 246, 0.15) 0px,
+            transparent 50%
+        ),
+
+        radial-gradient(
+                at 100% 100%,
+                rgba(236, 72, 153, 0.12) 0px,
+                transparent 50%
+            ),
+         #0a0a0f;  */
+
+    /*--bg-base: #0a0a0f; */
     --bg-layer1: #111118;
     --bg-layer2: #18181f;
     --bg-card: rgba(22, 22, 32, 0.85);
@@ -53,7 +86,7 @@
     --bg-base: #f4f4ff;
     --bg-layer1: #ebebff;
     --bg-layer2: #ffffff;
-    --bg-card: rgba(255, 255, 255, 0.9);
+    --bg-card: rgba(255, 255, 255, 0.5);
     --bg-card-hover: rgba(255, 255, 255, 1);
     --bg-glass: rgba(255, 255, 255, 0.7);
 
@@ -108,6 +141,7 @@ body {
         system-ui,
         -apple-system,
         sans-serif;
+    font-size: 16px;
     -webkit-font-smoothing: antialiased;
     transition:
         background 0.4s ease,
@@ -190,7 +224,7 @@ body {
     border: none;
     border-radius: var(--radius-sm);
     padding: 9px 18px;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 16px var(--accent-glow);
@@ -208,7 +242,7 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 9px 18px;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     backdrop-filter: blur(8px);
@@ -257,7 +291,7 @@ body {
 }
 
 .label-xs {
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
