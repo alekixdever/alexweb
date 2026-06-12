@@ -1,15 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Menu, Bell, Search, Sun, Moon, Plus, User } from "lucide-react";
 import InfoModal from "./InfoModal";
 
 export default function Header() {
-  const { isLoggedIn, setLeftDrawer, setRightDrawer, theme, toggleTheme } =
-    useApp();
+  const {
+    isLoggedIn,
+    setLeftDrawer,
+    setRightDrawer,
+    theme,
+    toggleTheme,
+    userRole,
+  } = useApp();
   const [infoOpen, setInfoOpen] = useState(false);
   const isLight = theme === "light";
+  const router = useRouter();
 
   return (
     <>
@@ -187,6 +195,29 @@ export default function Header() {
               }}
             >
               <Plus size={13} /> New Event
+            </button>
+          )}
+
+          {/* Admin link — super_admin only */}
+          {userRole === "super_admin" && (
+            <button
+              onClick={() => router.push("/admin")}
+              title="Admin Panel"
+              style={{
+                width: 34,
+                height: 34,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(139,92,246,0.15)",
+                border: "1px solid rgba(139,92,246,0.3)",
+                borderRadius: "var(--radius-sm)",
+                cursor: "pointer",
+                color: "var(--accent-bright)",
+                transition: "all 0.2s",
+              }}
+            >
+              ⚙️
             </button>
           )}
 
