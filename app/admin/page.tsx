@@ -632,13 +632,17 @@ function CategoriesSection() {
                 <input
                   type="color"
                   value={form.color}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const hex = e.target.value;
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
                     setForm((p) => ({
                       ...p,
-                      color: e.target.value,
-                      color_bg: `${e.target.value}20`,
-                    }))
-                  }
+                      color: hex,
+                      color_bg: `rgba(${r},${g},${b},0.12)`,
+                    }));
+                  }}
                   style={{
                     width: 40,
                     height: 34,

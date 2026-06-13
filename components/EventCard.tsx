@@ -1,13 +1,34 @@
 "use client";
 
-import { Event } from "@/data/events";
+import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MapPin, Calendar, Users, Tag, MoreHorizontal } from "lucide-react";
-import { locations } from "@/data/locations";
-import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+interface DBEvent {
+  id: string;
+  title: string;
+  title_ja: string;
+  description: string;
+  description_ja: string;
+  date: string;
+  location_id: string;
+  image_url: string | null;
+  tags: string[];
+  tags_ja: string[];
+  participant_count: number;
+}
+
+interface DBLocation {
+  id: string;
+  name: string;
+  name_ja: string;
+  color: string;
+  color_bg: string;
+}
 
 interface Props {
-  event: Event;
+  event: DBEvent;
   compact?: boolean;
   locationColor?: string;
   locationColorBg?: string;
@@ -21,10 +42,22 @@ export default function EventCard({
 }: Props) {
   const { isLoggedIn, openAuthModal } = useApp();
   const [joined, setJoined] = useState(false);
-  const [count, setCount] = useState(event.participantsCount);
+  const [count, setCount] = useState(event.participant_count ?? 0);
   const [hovered, setHovered] = useState(false);
+  const [location, setLocation] = useState<DBLocation | null>(null);
+  const supabase = createClient();
 
-  const location = locations.find((l) => l.id === event.locationId);
+  useEffect(() => {
+    const fetchLocation = async () => {
+      const { data } = await supabase
+        .from("locations")
+        .select("id, name, name_ja, color, color_bg")
+        .eq("id", event.location_id)
+        .single();
+      setLocation(data);
+    };
+    fetchLocation();
+  }, [event.location_id]);
 
   const handleJoin = () => {
     if (!isLoggedIn) {
@@ -45,12 +78,13 @@ export default function EventCard({
       });
   };
 
-  const dateStr = event.date.toLocaleDateString("en-US", {
+  const dateObj = new Date(event.date);
+  const dateStr = dateObj.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  const dateJa = event.date.toLocaleDateString("ja-JP", {
+  const dateJa = dateObj.toLocaleDateString("ja-JP", {
     month: "long",
     day: "numeric",
     weekday: "short",
@@ -58,7 +92,7 @@ export default function EventCard({
 
   const locColor = locationColor ?? location?.color ?? "#f472b6";
   const locColorBg =
-    locationColorBg ?? location?.colorBg ?? "rgba(244,114,182,0.12)";
+    locationColorBg ?? location?.color_bg ?? "rgba(244,114,182,0.12)";
 
   return (
     <article
@@ -95,11 +129,14 @@ export default function EventCard({
         }}
       />
 
-      {/* Image — hidden in compact */}
+      {/* Image */}
       {!compact && (
         <div style={{ height: 160, overflow: "hidden", position: "relative" }}>
           <img
-            src={event.image}
+            src={
+              event.image_url ??
+              "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80"
+            }
             alt={event.title}
             style={{
               width: "100%",
@@ -133,7 +170,7 @@ export default function EventCard({
               flexWrap: "wrap",
             }}
           >
-            {event.tags.slice(0, 2).map((tag, i) => (
+            {(event.tags ?? []).slice(0, 2).map((tag, i) => (
               <span
                 key={tag}
                 style={{
@@ -151,7 +188,7 @@ export default function EventCard({
               >
                 <Tag size={8} /> {tag}
                 <span style={{ opacity: 0.6, fontSize: 9 }}>
-                  / {event.tagsJa[i]}
+                  / {(event.tags_ja ?? [])[i]}
                 </span>
               </span>
             ))}
@@ -191,7 +228,7 @@ export default function EventCard({
               flexWrap: "wrap",
             }}
           >
-            {event.tags.slice(0, 2).map((tag, i) => (
+            {(event.tags ?? []).slice(0, 2).map((tag, i) => (
               <span
                 key={tag}
                 style={{
@@ -203,7 +240,7 @@ export default function EventCard({
                   border: "1px solid rgba(139,92,246,0.25)",
                 }}
               >
-                {tag} / {event.tagsJa[i]}
+                {tag} / {(event.tags_ja ?? [])[i]}
               </span>
             ))}
           </div>
@@ -230,7 +267,7 @@ export default function EventCard({
             lineHeight: 1.4,
           }}
         >
-          {event.titleJa}
+          {event.title_ja}
         </p>
 
         {/* Date + Location pills */}
@@ -327,7 +364,7 @@ export default function EventCard({
                   lineHeight: 1.2,
                 }}
               >
-                {location?.name}
+                {location?.name ?? "—"}
               </p>
               <p
                 style={{
@@ -336,7 +373,7 @@ export default function EventCard({
                   lineHeight: 1.2,
                 }}
               >
-                {location?.nameJa}
+                {location?.name_ja ?? ""}
               </p>
             </div>
           </div>
@@ -452,7 +489,7 @@ export default function EventCard({
               overflow: "hidden",
             }}
           >
-            {event.descriptionJa}
+            {event.description_ja}
           </p>
         )}
 

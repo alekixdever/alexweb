@@ -1,7 +1,17 @@
 "use client";
 
-import { locations } from "@/data/locations";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { MapPin, LayoutGrid } from "lucide-react";
+
+interface Location {
+  id: string;
+  name: string;
+  name_ja: string;
+  region: string;
+  color: string;
+  color_bg: string;
+}
 
 interface Props {
   selectedLocation: string;
@@ -9,14 +19,50 @@ interface Props {
 }
 
 export default function LocationList({ selectedLocation, onSelect }: Props) {
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("locations")
+        .select("*")
+        .order("name");
+      setLocations(data ?? []);
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
   const allItem = {
     id: "all",
     name: "All Venues",
-    nameJa: "全会場",
+    name_ja: "全会場",
+    region: "",
     color: "var(--accent-bright)",
-    colorBg: "rgba(139,92,246,0.12)",
+    color_bg: "rgba(139,92,246,0.12)",
   };
+
   const items = [allItem, ...locations];
+
+  if (loading) {
+    return (
+      <div style={{ padding: "12px 16px" }}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: 44,
+              borderRadius: "var(--radius-sm)",
+              background: "var(--bg-glass)",
+              marginBottom: 4,
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -37,7 +83,7 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
               border: "none",
               cursor: "pointer",
               textAlign: "left",
-              backgroundColor: isActive ? loc.colorBg : "transparent",
+              backgroundColor: isActive ? loc.color_bg : "transparent",
               borderLeft: isActive
                 ? `2px solid ${loc.color}`
                 : "2px solid transparent",
@@ -58,7 +104,7 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
                 height: 32,
                 borderRadius: 8,
                 flexShrink: 0,
-                background: isActive ? loc.colorBg : "var(--bg-glass)",
+                background: isActive ? loc.color_bg : "var(--bg-glass)",
                 border: `1px solid ${isActive ? loc.color : "var(--border)"}`,
                 display: "flex",
                 alignItems: "center",
@@ -89,7 +135,8 @@ export default function LocationList({ selectedLocation, onSelect }: Props) {
                 {loc.name}
               </div>
               <div style={{ fontSize: 10, color: "var(--fg-muted)" }}>
-                {"nameJa" in loc ? loc.nameJa : ""}
+                {loc.name_ja}
+                {loc.region ? ` · ${loc.region}` : ""}
               </div>
             </div>
             {isActive && (

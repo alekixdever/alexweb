@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
-import { locations } from "@/data/locations";
-import { events } from "@/data/events";
+
 import { LayoutList, LayoutGrid, CalendarDays, Users } from "lucide-react";
 
 interface Props {
@@ -22,14 +21,7 @@ export default function MainContent({
   const [activeTab, setActiveTab] = useState<"events" | "community">("events");
 
   const isAll = selectedLocation === "all";
-  const location = locations.find((l) => l.id === selectedLocation);
-
-  const count = events.filter((e) => {
-    const dateStr = e.date.toISOString().split("T")[0];
-    const matchDate = dateStr === selectedDate;
-    const matchLocation = isAll ? true : e.locationId === selectedLocation;
-    return matchDate && matchLocation;
-  }).length;
+  const locationName = selectedLocation === "all" ? "All Venues / 全会場" : "";
 
   const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString(
     "en-US",
@@ -70,72 +62,55 @@ export default function MainContent({
               color: "var(--fg-primary)",
             }}
           >
-            {isAll ? "All Venues / 全会場" : location?.name}
+            {isAll ? "All Venues / 全会場" : locationName || selectedLocation}
           </h2>
           <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
             {dateLabel}
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
+        {/* Layout toggle — desktop only, events tab only */}
+        {activeTab === "events" && (
+          <div
+            className="hidden lg:flex"
             style={{
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "3px 10px",
-              borderRadius: 99,
-              background:
-                count > 0 ? "rgba(52,211,153,0.1)" : "var(--bg-glass)",
-              color: count > 0 ? "var(--green)" : "var(--fg-muted)",
-              border: `1px solid ${count > 0 ? "rgba(52,211,153,0.25)" : "var(--border)"}`,
+              gap: 2,
+              padding: 3,
+              background: "var(--bg-glass)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              display: "flex",
             }}
           >
-            {count} {count === 1 ? "event / 件" : "events / 件"}
-          </span>
-
-          {/* Layout toggle — desktop only, events tab only */}
-          {activeTab === "events" && (
-            <div
-              className="hidden lg:flex"
-              style={{
-                gap: 2,
-                padding: 3,
-                background: "var(--bg-glass)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)",
-                display: "flex",
-              }}
-            >
-              {([1, 3] as const).map((col) => (
-                <button
-                  key={col}
-                  onClick={() => setColumnLayout(col)}
-                  title={col === 1 ? "Single column" : "Three columns"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 28,
-                    height: 28,
-                    borderRadius: 6,
-                    border: "none",
-                    cursor: "pointer",
-                    background:
-                      columnLayout === col ? "var(--accent)" : "transparent",
-                    color: columnLayout === col ? "#fff" : "var(--fg-muted)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {col === 1 ? (
-                    <LayoutList size={13} />
-                  ) : (
-                    <LayoutGrid size={13} />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+            {([1, 3] as const).map((col) => (
+              <button
+                key={col}
+                onClick={() => setColumnLayout(col)}
+                title={col === 1 ? "Single column" : "Three columns"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  background:
+                    columnLayout === col ? "var(--accent)" : "transparent",
+                  color: columnLayout === col ? "#fff" : "var(--fg-muted)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {col === 1 ? (
+                  <LayoutList size={13} />
+                ) : (
+                  <LayoutGrid size={13} />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main content tabs */}
