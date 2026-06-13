@@ -47,26 +47,63 @@ export default function EventCard({
   const [location, setLocation] = useState<DBLocation | null>(null);
   const supabase = createClient();
 
+  // Check if already joined
   useEffect(() => {
-    const fetchLocation = async () => {
-      const { data } = await supabase
-        .from("locations")
-        .select("id, name, name_ja, color, color_bg")
-        .eq("id", event.location_id)
-        .single();
-      setLocation(data);
-    };
-    fetchLocation();
-  }, [event.location_id]);
+    const checkJoined = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
-  const handleJoin = () => {
+      const { data } = await supabase
+        .from("event_participants")
+        .select("id")
+        .eq("event_id", event.id)
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (data) setJoined(true);
+    };
+    if (isLoggedIn) checkJoined();
+  }, [isLoggedIn, event.id]);
+
+  const handleJoin = async () => {
     if (!isLoggedIn) {
       openAuthModal("Join Event", { type: "JOIN_EVENT", eventId: event.id });
       return;
     }
-    if (!joined) {
+    if (joined) return;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const { error } = await supabase
+      .from("event_participants")
+      .insert({ event_id: event.id, user_id: session.user.id });
+
+    if (!error) {
       setJoined(true);
       setCount((c) => c + 1);
+    }
+  };
+
+  const handleLeave = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const { error } = await supabase
+      .from("event_participants")
+      .delete()
+      .eq("event_id", event.id)
+      .eq("user_id", session.user.id);
+
+    if (!error) {
+      setJoined(false);
+      setCount((c) => Math.max(0, c - 1));
     }
   };
 
@@ -493,9 +530,9 @@ export default function EventCard({
           </p>
         )}
 
-        {/* Join button */}
+        {/* Join / Leave button */}
         <button
-          onClick={handleJoin}
+          onClick={joined ? handleLeave : handleJoin}
           style={{
             width: "100%",
             padding: compact ? "7px" : "10px",
@@ -506,14 +543,14 @@ export default function EventCard({
             fontSize: compact ? 12 : 13,
             transition: "all 0.2s ease",
             background: joined
-              ? "rgba(52,211,153,0.1)"
+              ? "rgba(248,113,113,0.1)"
               : "linear-gradient(135deg, var(--accent), var(--accent2))",
-            color: joined ? "var(--green)" : "#fff",
+            color: joined ? "var(--red)" : "#fff",
             boxShadow: joined ? "none" : "0 4px 16px var(--accent-glow)",
           }}
         >
           {joined
-            ? "✓ Joined / 参加済み"
+            ? "✕ Leave Event / 参加取消"
             : isLoggedIn
               ? "Join Event / 参加する"
               : "🔒 Login to Join / ログインして参加"}

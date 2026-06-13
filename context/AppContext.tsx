@@ -104,13 +104,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .select("role")
           .eq("id", session.user.id)
           .single();
-        setState((prev) => ({
-          ...prev,
-          isLoggedIn: true,
-          user: session.user,
-          userRole: profile?.role ?? "member",
-          authModalOpen: false,
-        }));
+
+        setState((prev) => {
+          const pending = prev.pendingAction;
+
+          // Auto-execute pending JOIN_EVENT after login
+          if (pending?.type === "JOIN_EVENT" && pending.eventId) {
+            supabase
+              .from("event_participants")
+              .insert({ event_id: pending.eventId, user_id: session.user.id })
+              .then(() => {});
+          }
+
+          return {
+            ...prev,
+            isLoggedIn: true,
+            user: session.user,
+            userRole: profile?.role ?? "member",
+            authModalOpen: false,
+            pendingAction: null,
+          };
+        });
       } else {
         setState((prev) => ({
           ...prev,

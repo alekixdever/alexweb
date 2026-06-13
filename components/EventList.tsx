@@ -86,7 +86,9 @@ export default function EventList({
       // Normalize participant_count
       const normalized = (evtData ?? []).map((e) => ({
         ...e,
-        participant_count: e.event_participants?.[0]?.count ?? 0,
+        participant_count: Array.isArray(e.event_participants)
+          ? (e.event_participants[0]?.count ?? 0)
+          : 0,
       }));
 
       setEvents(normalized);

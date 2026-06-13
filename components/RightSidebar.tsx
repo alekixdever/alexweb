@@ -1,16 +1,16 @@
 "use client";
 
+// 在檔案頂部加入 import
 import { useApp } from "@/context/AppContext";
 import { contactList } from "@/data/users";
 import { LogIn, LogOut } from "lucide-react";
+import AvatarUpload from "@/components/AvatarUpload";
 
 export default function RightSidebar() {
   const { isLoggedIn, openAuthModal, logout, user } = useApp();
 
   const displayName =
     user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
-
-  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   if (!isLoggedIn) {
     return (
@@ -119,16 +119,11 @@ export default function RightSidebar() {
           }}
         >
           <div style={{ position: "relative", flexShrink: 0 }}>
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                border: "2px solid var(--accent)",
-                boxShadow: "0 0 12px var(--accent-glow)",
-              }}
+            <AvatarUpload
+              userId={user?.id ?? ""}
+              currentUrl={user?.user_metadata?.avatar_url ?? null}
+              displayName={displayName}
+              size={44}
             />
             <span
               style={{
@@ -141,6 +136,7 @@ export default function RightSidebar() {
                 background: "var(--green)",
                 border: "2px solid var(--bg-card)",
                 boxShadow: "0 0 6px var(--green-glow)",
+                pointerEvents: "none",
               }}
             />
           </div>
