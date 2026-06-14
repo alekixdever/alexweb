@@ -44,7 +44,7 @@ export function useRealtimeComments(
       .eq("event_id", eventId)
       .order("created_at", { ascending: true });
 
-    if (!error && data) setComments(data as Comment[]);
+    if (!error && data) setComments(data as unknown as Comment[]);
     setIsLoading(false);
   }, [eventId]);
 
@@ -111,13 +111,11 @@ export function useRealtimeComments(
           error: "Comment cannot be empty / コメントを入力してください",
         };
 
-      const { error } = await supabase
-        .from("comments")
-        .insert({
-          event_id: eventId,
-          user_id: currentUserId,
-          content: content.trim(),
-        });
+      const { error } = await supabase.from("comments").insert({
+        event_id: eventId,
+        user_id: currentUserId,
+        content: content.trim(),
+      });
 
       if (error) return { error: error.message };
       return { error: null };
