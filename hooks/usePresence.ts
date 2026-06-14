@@ -1,12 +1,7 @@
 // hooks/usePresence.ts
 // Phase 5 — Realtime: Online user status via Supabase Realtime Presence
-// Do NOT modify AppContext. This hook is self-contained.
-//
-// Usage:
-//   const { onlineUserIds, isOnline } = usePresence(user?.id ?? null)
-//   isOnline("some-user-id") → true | false
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface PresenceState {
@@ -20,12 +15,21 @@ interface UsePresenceReturn {
 }
 
 export function usePresence(currentUserId: string | null): UsePresenceReturn {
-  const supabase = createClient();
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const channel = supabase.channel("presence:global", {
-      config: { presence: { key: currentUserId ?? "anonymous" } },
+    const supabase = createClient();
+
+    // Remove any existing channel with this name before creating a new one
+    // This prevents "cannot add presence callbacks after subscribe()" errors
+    const CHANNEL_NAME = "mesp:presence:global";
+    const existing = supabase
+      .getChannels()
+      .find((c) => c.topic === `realtime:${CHANNEL_NAME}`);
+    if (existing) supabase.removeChannel(existing);
+
+    const channel = supabase.channel(CHANNEL_NAME, {
+      config: { presence: { key: currentUserId ?? "anon" } },
     });
 
     channel
@@ -53,10 +57,8 @@ export function usePresence(currentUserId: string | null): UsePresenceReturn {
     };
   }, [currentUserId]);
 
-  const isOnline = useCallback(
-    (userId: string) => onlineUserIds.has(userId),
-    [onlineUserIds],
-  );
-
-  return { onlineUserIds, isOnline };
+  return {
+    onlineUserIds,
+    isOnline: (userId: string) => onlineUserIds.has(userId),
+  };
 }
