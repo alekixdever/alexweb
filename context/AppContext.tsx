@@ -75,7 +75,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, name")
           .eq("id", session.user.id)
           .single();
         setState((prev) => ({
@@ -101,7 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, name")
           .eq("id", session.user.id)
           .single();
 
