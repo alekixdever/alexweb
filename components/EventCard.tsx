@@ -17,6 +17,12 @@ interface DBEvent {
   tags: string[];
   tags_ja: string[];
   participant_count: number;
+  category_id: string | null;
+  category?: {
+    name: string;
+    name_ja: string;
+    color: string;
+  } | null;
 }
 
 interface DBLocation {
@@ -227,6 +233,31 @@ export default function EventCard({
               flexWrap: "wrap",
             }}
           >
+            {event.category && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 8px",
+                  borderRadius: 99,
+                  marginBottom: 6,
+                  background: `${event.category.color}20`,
+                  border: `1px solid ${event.category.color}40`,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: event.category.color,
+                  }}
+                >
+                  {event.category.name} / {event.category.name_ja}
+                </span>
+              </div>
+            )}
+
             {(event.tags ?? []).slice(0, 2).map((tag, i) => (
               <span
                 key={tag}

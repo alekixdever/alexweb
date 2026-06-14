@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
+import ImageUpload from "@/components/ImageUpload";
 // 改為
 import {
   Plus,
@@ -18,7 +19,6 @@ import {
   CalendarDays,
   Clock,
 } from "lucide-react";
-import ImageUpload from "@/components/ImageUpload";
 
 // ── Types ──────────────────────────────────────────
 interface Location {
@@ -514,16 +514,14 @@ function EventsSection() {
 
           {/* Image Upload */}
           <div>
-            <label style={labelStyle}>
-              Event Image / イベント画像 (optional)
-            </label>
+            <label style={labelStyle}>Event Image / イベント画像</label>
             <ImageUpload
-              userId={user!.id}
+              userId={user?.id ?? ""}
               currentUrl={form.image_url || null}
               onUploadComplete={(url) =>
                 setForm((p) => ({ ...p, image_url: url }))
               }
-              onError={(err) => console.error("Image upload error:", err)}
+              onError={(err) => console.error("Upload error:", err)}
             />
           </div>
 

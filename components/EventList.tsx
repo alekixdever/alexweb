@@ -64,7 +64,9 @@ export default function EventList({
       // Build events query
       let query = supabase
         .from("events")
-        .select("*, event_participants(count)")
+        .select(
+          "*, event_participants(count), activity_categories(name, name_ja, color)",
+        )
         .order("date");
 
       if (!isAll) {
@@ -89,6 +91,7 @@ export default function EventList({
         participant_count: Array.isArray(e.event_participants)
           ? (e.event_participants[0]?.count ?? 0)
           : 0,
+        category: e.activity_categories ?? null,
       }));
 
       setEvents(normalized);

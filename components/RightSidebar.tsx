@@ -5,10 +5,11 @@ import { useApp } from "@/context/AppContext";
 import { contactList } from "@/data/users";
 import { LogIn, LogOut } from "lucide-react";
 import AvatarUpload from "@/components/AvatarUpload";
+import { useRouter } from "next/navigation";
 
 export default function RightSidebar() {
   const { isLoggedIn, openAuthModal, logout, user } = useApp();
-
+  const router = useRouter();
   const displayName =
     user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
 
@@ -142,6 +143,7 @@ export default function RightSidebar() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p
+              onClick={() => user?.id && router.push(`/profile/${user.id}`)}
               style={{
                 fontSize: 13,
                 fontWeight: 700,
@@ -150,6 +152,7 @@ export default function RightSidebar() {
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                cursor: "pointer",
               }}
             >
               {displayName}
