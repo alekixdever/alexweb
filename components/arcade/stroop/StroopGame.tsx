@@ -104,7 +104,7 @@ export default function StroopGame({ onExit }: Props) {
 
   // ── Play again ───────────────────────────────────────────────────────────
   function handlePlayAgain() {
-    previousBestRef.current = null;
+    previousBestRef.current = state.totalScore;
     handleStart();
   }
 
@@ -160,7 +160,10 @@ export default function StroopGame({ onExit }: Props) {
 
   // Result screen
   if (state.phase === "result") {
-    const summary = summariseSession(state.rounds, previousBestRef.current);
+    const summary = summariseSession(
+      state.rounds,
+      previousBestRef.current ?? null,
+    );
     return (
       <StroopResult
         summary={summary}
