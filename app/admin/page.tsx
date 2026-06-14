@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Clock,
 } from "lucide-react";
+import ImageUpload from "@/components/ImageUpload";
 
 // ── Types ──────────────────────────────────────────
 interface Location {
@@ -511,16 +512,18 @@ function EventsSection() {
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div>
-            <label style={labelStyle}>Image URL (optional)</label>
-            <input
-              style={inputStyle}
-              value={form.image_url}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, image_url: e.target.value }))
+            <label style={labelStyle}>
+              Event Image / イベント画像 (optional)
+            </label>
+            <ImageUpload
+              userId={user!.id}
+              currentUrl={form.image_url || null}
+              onUploadComplete={(url) =>
+                setForm((p) => ({ ...p, image_url: url }))
               }
-              placeholder="https://images.unsplash.com/..."
+              onError={(err) => console.error("Image upload error:", err)}
             />
           </div>
 
