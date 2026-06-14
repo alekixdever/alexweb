@@ -28,7 +28,11 @@ function genRoomId() {
 }
 
 export default function NanaGame({ onExit }: Props) {
-  const { user, lang } = useApp();
+  const { user } = useApp();
+  const lang =
+    typeof navigator !== "undefined" && navigator.language.startsWith("ja")
+      ? "ja"
+      : "en";
   const [gameState, setGameState] = useState<NanaGameState | null>(null);
   const [roomId] = useState(() => genRoomId());
   const [myPlayerIndex, setMyPlayerIndex] = useState(0);

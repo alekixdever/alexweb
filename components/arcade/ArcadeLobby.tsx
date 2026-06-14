@@ -16,7 +16,11 @@ interface PersonalStats {
 }
 
 export default function ArcadeLobby() {
-  const { user, lang } = useApp();
+  const { user } = useApp()
+  const lang = (typeof navigator !== "undefined" && navigator.language.startsWith("ja")) ? "ja" : "en"
+
+
+
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
   const [stats, setStats] = useState<PersonalStats>({
     stroopBest: null,
@@ -92,7 +96,7 @@ export default function ArcadeLobby() {
           personalBest={stats.stroopBest}
           globalRank={stats.stroopRank}
           onPlay={() => setActiveGame("stroop")}
-          lang={lang}
+          lang=lang}
         />
 
         <ArcadeGameCard

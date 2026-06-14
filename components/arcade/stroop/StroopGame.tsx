@@ -22,7 +22,11 @@ interface Props {
 }
 
 export default function StroopGame({ onExit }: Props) {
-  const { user, lang } = useApp();
+  const { user } = useApp();
+  const lang =
+    typeof navigator !== "undefined" && navigator.language.startsWith("ja")
+      ? "ja"
+      : "en";
 
   const [state, setState] = useState<StroopGameState>({
     phase: "idle",
