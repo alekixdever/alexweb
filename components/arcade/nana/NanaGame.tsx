@@ -1,9 +1,9 @@
 // components/arcade/nana/NanaGame.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
-import NanaSetup from "./NanaSetup";
+import NanaRoomLobby from "./NanaRoomLobby";
 import NanaCenterGrid from "./NanaCenterGrid";
 import NanaPlayerHand from "./NanaPlayerHand";
 import NanaTurnIndicator from "./NanaTurnIndicator";
@@ -15,16 +15,15 @@ import {
   flipCard,
   getFlippableTargets,
 } from "@/lib/arcade/nana-engine";
+import {
+  getNanaRoomPlayers,
+  updateNanaRoomStatus,
+} from "@/lib/arcade/nana-room-db";
 import type { NanaGameState } from "@/types/arcade";
 import type { FlipTarget } from "@/lib/arcade/nana-engine";
 
 interface Props {
   onExit: () => void;
-}
-
-// Generate a simple room ID (host creates, others join — future lobby system)
-function genRoomId() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
 export default function NanaGame({ onExit }: Props) {
@@ -33,36 +32,65 @@ export default function NanaGame({ onExit }: Props) {
     typeof navigator !== "undefined" && navigator.language.startsWith("ja")
       ? "ja"
       : "en";
-  const [gameState, setGameState] = useState<NanaGameState | null>(null);
-  const [roomId] = useState(() => genRoomId());
+
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState(0);
+  const [roomPlayerCount, setRoomPlayerCount] = useState(2);
+  const [profileName, setProfileName] = useState("Guest");
+  const [gameState, setGameState] = useState<NanaGameState | null>(null);
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
+
+  // Fetch profile name
+  useEffect(() => {
+    if (!user?.id) return;
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient()
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.name) setProfileName(data.name);
+        });
+    });
+  }, [user?.id]);
+
   const isMyTurn = gameState
     ? gameState.currentPlayerIndex === myPlayerIndex
     : false;
 
-  // ── Realtime ─────────────────────────────────────────────────────────────
-  const { connected, peers, broadcastGameState, broadcastFlip } =
-    useRealtimeNana({
-      roomId,
-      userId: user?.id ?? `guest_${roomId}`,
-      userName: user?.user_metadata?.name ?? "Guest",
-      playerIndex: myPlayerIndex,
-      onGameStateUpdate: (state) => setGameState(state),
-      onPlayerJoined: (presence) => {
-        const me = presence.find(
-          (p) => p.userId === (user?.id ?? `guest_${roomId}`),
-        );
-        if (me) setMyPlayerIndex(me.playerIndex);
-      },
-    });
+  // ── Realtime ──────────────────────────────────────────────────────────────
+  const { connected, broadcastGameState, broadcastFlip } = useRealtimeNana({
+    roomId: roomId ?? "none",
+    userId: user?.id ?? `guest_${Date.now()}`,
+    userName: profileName,
+    playerIndex: myPlayerIndex,
+    onGameStateUpdate: (state) => setGameState(state),
+    onPlayerJoined: () => {},
+  });
 
-  // ── Start game ────────────────────────────────────────────────────────────
-  const handleStart = useCallback(
-    async (names: string[], userIds: (string | null)[]) => {
+  // ── Room ready — start game ───────────────────────────────────────────────
+  const handleRoomReady = useCallback(
+    async (rid: string, playerIndex: number, playerCount: number) => {
+      setRoomId(rid);
+      setMyPlayerIndex(playerIndex);
+      setRoomPlayerCount(playerCount);
+
+      // Only host (playerIndex 0) sets up the game
+      if (playerIndex !== 0) return;
+
+      const roomPlayers = await getNanaRoomPlayers(rid);
+      const names = roomPlayers
+        .sort((a, b) => a.player_index - b.player_index)
+        .map((p) => p.player_name);
+      const userIds = roomPlayers
+        .sort((a, b) => a.player_index - b.player_index)
+        .map((p) => p.user_id);
+
       const state = setupGame(names, userIds);
       setGameState(state);
+      await updateNanaRoomStatus(rid, "playing");
       await broadcastGameState(state);
     },
     [broadcastGameState],
@@ -81,18 +109,49 @@ export default function NanaGame({ onExit }: Props) {
   );
 
   // ── Play again ────────────────────────────────────────────────────────────
-  function handlePlayAgain() {
+  async function handlePlayAgain() {
+    if (!roomId) return;
     setGameState(null);
+    setRoomId(null);
   }
 
-  // ── Setup screen ─────────────────────────────────────────────────────────
-  if (!gameState) {
+  // ── Room lobby ────────────────────────────────────────────────────────────
+  if (!roomId || !gameState) {
+    if (!user?.id) {
+      return (
+        <div
+          className="float-card"
+          style={{
+            padding: 32,
+            textAlign: "center",
+            borderRadius: "var(--radius)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: 15,
+              color: "var(--fg-primary)",
+              marginBottom: 12,
+            }}
+          >
+            {t(
+              "Log in to play Nana online.",
+              "ナナをオンラインでプレイするにはログインしてください。",
+            )}
+          </p>
+          <button className="btn-secondary" onClick={onExit}>
+            {t("Back", "戻る")}
+          </button>
+        </div>
+      );
+    }
+
     return (
-      <NanaSetup
-        currentUserName={user?.user_metadata?.name}
-        currentUserId={user?.id}
+      <NanaRoomLobby
+        userId={user.id}
+        userName={profileName}
         lang={lang}
-        onStart={handleStart}
+        onRoomReady={handleRoomReady}
         onExit={onExit}
       />
     );
@@ -118,7 +177,7 @@ export default function NanaGame({ onExit }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Connection badge */}
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -127,7 +186,7 @@ export default function NanaGame({ onExit }: Props) {
         }}
       >
         <p className="label-xs">
-          Room / 部屋: <strong>{roomId}</strong>
+          {t("Room", "部屋")}: <strong>{roomId}</strong>
         </p>
         <span
           className="label-xs"
@@ -137,21 +196,18 @@ export default function NanaGame({ onExit }: Props) {
         </span>
       </div>
 
-      {/* Scoreboard */}
       <NanaScoreboard
         players={gameState.players}
         currentPlayerIndex={gameState.currentPlayerIndex}
         lang={lang}
       />
 
-      {/* Turn indicator */}
       <NanaTurnIndicator
         state={gameState}
         currentUserId={user?.id}
         lang={lang}
       />
 
-      {/* Center grid */}
       <NanaCenterGrid
         state={gameState}
         flippableTargets={flippableTargets}
@@ -159,9 +215,8 @@ export default function NanaGame({ onExit }: Props) {
         isMyTurn={isMyTurn}
       />
 
-      {/* All player hands */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p className="label-xs">{t("Hands / 手札", "手札")}</p>
+        <p className="label-xs">{t("Hands", "手札")}</p>
         {gameState.players.map((player, pi) => (
           <NanaPlayerHand
             key={player.id}
@@ -176,7 +231,6 @@ export default function NanaGame({ onExit }: Props) {
         ))}
       </div>
 
-      {/* Exit */}
       <button
         className="btn-secondary"
         onClick={onExit}
