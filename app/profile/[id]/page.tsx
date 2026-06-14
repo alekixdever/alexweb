@@ -75,7 +75,7 @@ export default function ProfilePage() {
           )
           .in("id", ids)
           .order("date", { ascending: false });
-        setJoinedEvents((evts ?? []) as JoinedEvent[]);
+        setJoinedEvents((evts ?? []) as unknown as JoinedEvent[]);
       }
 
       setLoading(false);
