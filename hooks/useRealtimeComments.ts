@@ -77,7 +77,7 @@ export function useRealtimeComments(
           if (data) {
             setComments((prev) => {
               if (prev.some((c) => c.id === data.id)) return prev;
-              return [...prev, data as Comment];
+              return [...prev, data as unknown as Comment];
             });
           }
         },
