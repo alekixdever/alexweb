@@ -1364,8 +1364,8 @@ export default function AdminPage() {
   const { userRole, isLoggedIn } = useApp();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<
-    "venues" | "categories" | "users" | "theme"
-  >("venues");
+    "events" | "venues" | "categories" | "users" | "theme"
+  >("events");
 
   useEffect(() => {
     if (!isLoggedIn || userRole !== "super_admin") {
