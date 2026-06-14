@@ -11,7 +11,6 @@ export interface Comment {
   user_id: string;
   content: string;
   created_at: string;
-  // Joined from profiles
   profiles: {
     name: string;
     avatar_url: string | null;
@@ -33,24 +32,23 @@ export function useRealtimeComments(
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ── Initial fetch (with profile join) ─────────────────────────────────────
-  const fetchComments = useCallback(async () => {
-    if (!eventId) return;
-    const { data, error } = await supabase
-      .from("comments")
-      .select(
-        "id, event_id, user_id, content, created_at, profiles(name, avatar_url)",
-      )
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: true });
-
-    if (!error && data) setComments(data as unknown as Comment[]);
-    setIsLoading(false);
-  }, [eventId]);
-
-  // ── Realtime subscription ──────────────────────────────────────────────────
+  // ── Realtime subscription + initial fetch ──────────────────────────────────
   useEffect(() => {
     if (!eventId) return;
+
+    // Initial fetch inlined — avoids useCallback dependency issues
+    const fetchComments = async () => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select(
+          "id, event_id, user_id, content, created_at, profiles(name, avatar_url)",
+        )
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) setComments(data as unknown as Comment[]);
+      setIsLoading(false);
+    };
 
     fetchComments();
 
@@ -99,7 +97,7 @@ export function useRealtimeComments(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId, fetchComments]);
+  }, [eventId]); // ← only eventId needed, supabase client is stable
 
   // ── Post comment ───────────────────────────────────────────────────────────
   const postComment = useCallback(
@@ -119,7 +117,6 @@ export function useRealtimeComments(
 
       if (error) return { error: error.message };
       return { error: null };
-      // Realtime INSERT will update state automatically
     },
     [eventId, currentUserId],
   );
@@ -138,7 +135,6 @@ export function useRealtimeComments(
 
       if (error) return { error: error.message };
       return { error: null };
-      // Realtime DELETE will update state automatically
     },
     [currentUserId],
   );

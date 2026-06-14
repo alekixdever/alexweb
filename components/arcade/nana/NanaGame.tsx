@@ -63,7 +63,7 @@ export default function NanaGame({ onExit }: Props) {
   // ── Realtime ──────────────────────────────────────────────────────────────
   const { connected, broadcastGameState, broadcastFlip } = useRealtimeNana({
     roomId: roomId ?? "none",
-    userId: user?.id ?? `guest_${Date.now()}`,
+    userId: user?.id ?? `guest_${Date.now().toString()}`,
     userName: profileName,
     playerIndex: myPlayerIndex,
     onGameStateUpdate: (state) => setGameState(state),
