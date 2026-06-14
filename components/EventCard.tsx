@@ -430,7 +430,7 @@ export default function EventCard({
           }}
         >
           <div style={{ display: "flex", alignItems: "center" }}>
-            {Array.from({ length: Math.min(3, displayCount) }).map((_, i) => (
+            {Array.from({ length: Math.min(3, count) }).map((_, i) => (
               <div
                 key={i}
                 style={{
@@ -457,7 +457,7 @@ export default function EventCard({
                 {["A", "B", "C"][i]}
               </div>
             ))}
-            {displayCount > 3 && (
+            {count > 3 && (
               <div
                 style={{
                   width: 20,
@@ -476,14 +476,14 @@ export default function EventCard({
                   zIndex: 0,
                 }}
               >
-                +{displayCount - 3}
+                +{count - 3}
               </div>
             )}
           </div>
           <span
             style={{ color: isLoggedIn ? "var(--green)" : "var(--fg-muted)" }}
           >
-            {displayCount} participants / 参加者
+            {count} participants / 参加者
             {!isLoggedIn && (
               <span style={{ color: "var(--fg-muted)", fontSize: 10 }}>
                 {" "}
