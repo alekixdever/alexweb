@@ -40,67 +40,84 @@ export default function EventCard({
   locationColor,
   locationColorBg,
 }: Props) {
-  const { isLoggedIn, openAuthModal } = useApp();
+  const { isLoggedIn, openAuthModal, user } = useApp();
   const [joined, setJoined] = useState(false);
   const [count, setCount] = useState(event.participant_count ?? 0);
   const [hovered, setHovered] = useState(false);
   const [location, setLocation] = useState<DBLocation | null>(null);
+  const [checking, setChecking] = useState(true);
   const supabase = createClient();
 
-  // Check if already joined
+  useEffect(() => {
+    const fetchLocation = async () => {
+      const { data } = await supabase
+        .from("locations")
+        .select("id, name, name_ja, color, color_bg")
+        .eq("id", event.location_id)
+        .single();
+      setLocation(data);
+    };
+    fetchLocation();
+  }, [event.location_id]);
+
   useEffect(() => {
     const checkJoined = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) return;
-
+      setChecking(true);
+      if (!user?.id) {
+        setChecking(false);
+        return;
+      }
       const { data } = await supabase
         .from("event_participants")
         .select("id")
         .eq("event_id", event.id)
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (data) setJoined(true);
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setJoined(!!data);
+      setChecking(false);
     };
-    if (isLoggedIn) checkJoined();
-  }, [isLoggedIn, event.id]);
+    checkJoined();
+  }, [user?.id, event.id]);
 
   const handleJoin = async () => {
     if (!isLoggedIn) {
       openAuthModal("Join Event", { type: "JOIN_EVENT", eventId: event.id });
       return;
     }
-    if (joined) return;
+    if (joined || checking || !user?.id) return;
+    setChecking(true);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    const { data: existing } = await supabase
+      .from("event_participants")
+      .select("id")
+      .eq("event_id", event.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      setJoined(true);
+      setChecking(false);
+      return;
+    }
 
     const { error } = await supabase
       .from("event_participants")
-      .insert({ event_id: event.id, user_id: session.user.id });
+      .insert({ event_id: event.id, user_id: user.id });
 
     if (!error) {
       setJoined(true);
       setCount((c) => c + 1);
     }
+    setChecking(false);
   };
 
   const handleLeave = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) return;
-
+    if (!user?.id) return;
     const { error } = await supabase
       .from("event_participants")
       .delete()
       .eq("event_id", event.id)
-      .eq("user_id", session.user.id);
-
+      .eq("user_id", user.id);
     if (!error) {
       setJoined(false);
       setCount((c) => Math.max(0, c - 1));
@@ -131,6 +148,13 @@ export default function EventCard({
   const locColorBg =
     locationColorBg ?? location?.color_bg ?? "rgba(244,114,182,0.12)";
 
+  const joinLabel = () => {
+    if (!isLoggedIn) return "🔒 Login to Join / ログインして参加";
+    if (checking) return "...";
+    if (joined) return "✕ Leave Event / 参加取消";
+    return "Join Event / 参加する";
+  };
+
   return (
     <article
       onMouseEnter={() => setHovered(true)}
@@ -150,7 +174,6 @@ export default function EventCard({
         position: "relative",
       }}
     >
-      {/* Top glow edge */}
       <div
         style={{
           position: "absolute",
@@ -166,7 +189,6 @@ export default function EventCard({
         }}
       />
 
-      {/* Image */}
       {!compact && (
         <div style={{ height: 160, overflow: "hidden", position: "relative" }}>
           <img
@@ -195,8 +217,6 @@ export default function EventCard({
                 "linear-gradient(to top, rgba(10,10,15,0.75) 0%, transparent 60%)",
             }}
           />
-
-          {/* Tags on image */}
           <div
             style={{
               position: "absolute",
@@ -230,7 +250,6 @@ export default function EventCard({
               </span>
             ))}
           </div>
-
           <button
             style={{
               position: "absolute",
@@ -255,7 +274,6 @@ export default function EventCard({
       )}
 
       <div style={{ padding: compact ? "12px" : "14px" }}>
-        {/* Compact tags */}
         {compact && (
           <div
             style={{
@@ -283,7 +301,6 @@ export default function EventCard({
           </div>
         )}
 
-        {/* Title */}
         <h3
           style={{
             fontSize: compact ? 13 : 15,
@@ -307,7 +324,6 @@ export default function EventCard({
           {event.title_ja}
         </p>
 
-        {/* Date + Location pills */}
         <div
           style={{
             display: "flex",
@@ -317,7 +333,6 @@ export default function EventCard({
             marginBottom: compact ? 10 : 12,
           }}
         >
-          {/* Date pill */}
           <div
             style={{
               display: "inline-flex",
@@ -366,7 +381,6 @@ export default function EventCard({
             </div>
           </div>
 
-          {/* Location pill */}
           <div
             style={{
               display: "inline-flex",
@@ -416,7 +430,6 @@ export default function EventCard({
           </div>
         </div>
 
-        {/* Participants */}
         <button
           onClick={handleViewParticipants}
           style={{
@@ -495,7 +508,6 @@ export default function EventCard({
           </span>
         </button>
 
-        {/* Description */}
         {!compact && (
           <p
             style={{
@@ -530,30 +542,34 @@ export default function EventCard({
           </p>
         )}
 
-        {/* Join / Leave button */}
         <button
           onClick={joined ? handleLeave : handleJoin}
+          disabled={checking}
           style={{
             width: "100%",
             padding: compact ? "7px" : "10px",
             borderRadius: "var(--radius-sm)",
             border: "none",
-            cursor: "pointer",
+            cursor: checking ? "wait" : "pointer",
             fontWeight: 600,
             fontSize: compact ? 12 : 13,
             transition: "all 0.2s ease",
             background: joined
               ? "rgba(248,113,113,0.1)"
-              : "linear-gradient(135deg, var(--accent), var(--accent2))",
-            color: joined ? "var(--red)" : "#fff",
-            boxShadow: joined ? "none" : "0 4px 16px var(--accent-glow)",
+              : checking
+                ? "var(--bg-glass)"
+                : "linear-gradient(135deg, var(--accent), var(--accent2))",
+            color: joined
+              ? "var(--red)"
+              : checking
+                ? "var(--fg-muted)"
+                : "#fff",
+            boxShadow:
+              joined || checking ? "none" : "0 4px 16px var(--accent-glow)",
+            opacity: checking ? 0.7 : 1,
           }}
         >
-          {joined
-            ? "✕ Leave Event / 参加取消"
-            : isLoggedIn
-              ? "Join Event / 参加する"
-              : "🔒 Login to Join / ログインして参加"}
+          {joinLabel()}
         </button>
       </div>
     </article>
