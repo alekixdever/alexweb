@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Menu, Bell, Search, Sun, Moon, Plus, User } from "lucide-react";
+import { Menu, Bell, Search, Sun, Moon, User } from "lucide-react";
 import InfoModal from "./InfoModal";
 
 export default function Header() {
@@ -175,29 +175,6 @@ export default function Header() {
             flexShrink: 0,
           }}
         >
-          {isLoggedIn && (
-            <button
-              className="hidden sm:flex"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                background:
-                  "linear-gradient(135deg, var(--accent), var(--accent2))",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                padding: "7px 12px",
-                cursor: "pointer",
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 600,
-                boxShadow: "0 4px 12px var(--accent-glow)",
-              }}
-            >
-              <Plus size={13} /> New Event
-            </button>
-          )}
-
           {/* Admin link — super_admin only */}
           {userRole === "super_admin" && (
             <button

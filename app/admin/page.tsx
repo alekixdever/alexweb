@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
+// 改為
 import {
   Plus,
   Trash2,
@@ -14,6 +15,8 @@ import {
   MapPin,
   Tag,
   Palette,
+  CalendarDays,
+  Clock,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────
@@ -138,6 +141,437 @@ function SectionTitle({
         </p>
         <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>{ja}</p>
       </div>
+    </div>
+  );
+}
+
+// ── Events Section ─────────────────────────────────
+function EventsSection() {
+  const supabase = createClient();
+  const { user } = useApp();
+  const [events, setEvents] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    title_ja: "",
+    description: "",
+    description_ja: "",
+    date: "",
+    time: "10:00",
+    location_id: "",
+    category_id: "",
+    image_url: "",
+    tags: "",
+    tags_ja: "",
+  });
+
+  const load = async () => {
+    const [evtRes, locRes, catRes] = await Promise.all([
+      supabase.from("events").select("*, locations(name)").order("date"),
+      supabase.from("locations").select("id, name").order("name"),
+      supabase.from("activity_categories").select("id, name").order("name"),
+    ]);
+    setEvents(evtRes.data ?? []);
+    setLocations(locRes.data ?? []);
+    setCategories(catRes.data ?? []);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const resetForm = () => {
+    setForm({
+      title: "",
+      title_ja: "",
+      description: "",
+      description_ja: "",
+      date: "",
+      time: "10:00",
+      location_id: "",
+      category_id: "",
+      image_url: "",
+      tags: "",
+      tags_ja: "",
+    });
+    setEditing(null);
+    setAdding(false);
+  };
+
+  const save = async () => {
+    if (!form.title || !form.date || !form.location_id) return;
+    setLoading(true);
+
+    const payload = {
+      title: form.title,
+      title_ja: form.title_ja,
+      description: form.description,
+      description_ja: form.description_ja,
+      date: `${form.date}T${form.time}:00`,
+      location_id: form.location_id,
+      category_id: form.category_id || null,
+      image_url: form.image_url || null,
+      tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
+      tags_ja: form.tags_ja ? form.tags_ja.split(",").map((t) => t.trim()) : [],
+      creator_id: user?.id,
+    };
+
+    if (editing) {
+      await supabase.from("events").update(payload).eq("id", editing);
+    } else {
+      await supabase.from("events").insert(payload);
+    }
+
+    await load();
+    resetForm();
+    setLoading(false);
+  };
+
+  const del = async (id: string) => {
+    if (!confirm("Delete this event? / このイベントを削除しますか？")) return;
+    await supabase.from("events").delete().eq("id", id);
+    await load();
+  };
+
+  const startEdit = (evt: any) => {
+    const d = new Date(evt.date);
+    const dateStr = d.toISOString().split("T")[0];
+    const timeStr = d.toTimeString().slice(0, 5);
+    setForm({
+      title: evt.title,
+      title_ja: evt.title_ja,
+      description: evt.description,
+      description_ja: evt.description_ja,
+      date: dateStr,
+      time: timeStr,
+      location_id: evt.location_id,
+      category_id: evt.category_id ?? "",
+      image_url: evt.image_url ?? "",
+      tags: (evt.tags ?? []).join(", "),
+      tags_ja: (evt.tags_ja ?? []).join(", "),
+    });
+    setEditing(evt.id);
+    setAdding(true);
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    color: "var(--fg-muted)",
+    display: "block",
+    marginBottom: 4,
+  };
+
+  return (
+    <div
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: 20,
+        marginBottom: 16,
+      }}
+    >
+      <SectionTitle
+        icon={<CalendarDays size={16} />}
+        en="Event Management"
+        ja="イベント管理"
+      />
+
+      {/* Event list */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          marginBottom: 12,
+        }}
+      >
+        {events.length === 0 && (
+          <p
+            style={{ fontSize: 12, color: "var(--fg-muted)", padding: "8px 0" }}
+          >
+            No events yet. / イベントがまだありません。
+          </p>
+        )}
+        {events.map((evt) => {
+          const dateObj = new Date(evt.date);
+          const dateStr = dateObj.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+          const timeStr = dateObj.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          return (
+            <div
+              key={evt.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 12px",
+                background: "var(--bg-glass)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--fg-primary)",
+                    marginBottom: 2,
+                  }}
+                >
+                  {evt.title}
+                </p>
+                <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                  {evt.title_ja} · {dateStr} {timeStr} ·{" "}
+                  {evt.locations?.name ?? "—"}
+                </p>
+              </div>
+              <button style={btnGhost} onClick={() => startEdit(evt)}>
+                <Edit3 size={11} /> Edit
+              </button>
+              <button style={btnDanger} onClick={() => del(evt.id)}>
+                <Trash2 size={11} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add / Edit form */}
+      {adding ? (
+        <div
+          style={{
+            background: "var(--bg-layer2)",
+            border: "1px solid var(--border-hover)",
+            borderRadius: "var(--radius-sm)",
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--fg-primary)",
+            }}
+          >
+            {editing
+              ? "Edit Event / イベント編集"
+              : "New Event / 新しいイベント"}
+          </p>
+
+          {/* Title */}
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            <div>
+              <label style={labelStyle}>Title (EN) *</label>
+              <input
+                style={inputStyle}
+                value={form.title}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, title: e.target.value }))
+                }
+                placeholder="Kyoto Night Walk"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Title (JA) / タイトル</label>
+              <input
+                style={inputStyle}
+                value={form.title_ja}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, title_ja: e.target.value }))
+                }
+                placeholder="京都夜間散歩"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            <div>
+              <label style={labelStyle}>Description (EN)</label>
+              <textarea
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+                value={form.description}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description: e.target.value }))
+                }
+                placeholder="Event description..."
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Description (JA) / 説明</label>
+              <textarea
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+                value={form.description_ja}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description_ja: e.target.value }))
+                }
+                placeholder="イベントの説明..."
+              />
+            </div>
+          </div>
+
+          {/* Date + Time */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr 1fr",
+              gap: 8,
+            }}
+          >
+            <div style={{ gridColumn: "span 2" }}>
+              <label style={labelStyle}>Date / 日付 *</label>
+              <input
+                type="date"
+                style={inputStyle}
+                value={form.date}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, date: e.target.value }))
+                }
+              />
+            </div>
+            <div style={{ gridColumn: "span 2" }}>
+              <label style={labelStyle}>Time / 時間</label>
+              <input
+                type="time"
+                style={inputStyle}
+                value={form.time}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, time: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Location + Category */}
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            <div>
+              <label style={labelStyle}>Venue / 会場 *</label>
+              <select
+                style={{ ...inputStyle, cursor: "pointer" }}
+                value={form.location_id}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, location_id: e.target.value }))
+                }
+              >
+                <option value="">Select venue / 会場を選択</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Category / カテゴリ</label>
+              <select
+                style={{ ...inputStyle, cursor: "pointer" }}
+                value={form.category_id}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, category_id: e.target.value }))
+                }
+              >
+                <option value="">No category / カテゴリなし</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Image URL */}
+          <div>
+            <label style={labelStyle}>Image URL (optional)</label>
+            <input
+              style={inputStyle}
+              value={form.image_url}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, image_url: e.target.value }))
+              }
+              placeholder="https://images.unsplash.com/..."
+            />
+          </div>
+
+          {/* Tags */}
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            <div>
+              <label style={labelStyle}>Tags EN (comma separated)</label>
+              <input
+                style={inputStyle}
+                value={form.tags}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, tags: e.target.value }))
+                }
+                placeholder="Photography, Night, Outdoor"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Tags JA / タグ（カンマ区切り）</label>
+              <input
+                style={inputStyle}
+                value={form.tags_ja}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, tags_ja: e.target.value }))
+                }
+                placeholder="写真, 夜間, 屋外"
+              />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={btnPrimary} onClick={save} disabled={loading}>
+              <Save size={12} />{" "}
+              {loading
+                ? "Saving..."
+                : editing
+                  ? "Update Event"
+                  : "Create Event / 作成する"}
+            </button>
+            <button style={btnGhost} onClick={resetForm}>
+              <X size={12} /> Cancel / キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button style={btnPrimary} onClick={() => setAdding(true)}>
+          <Plus size={13} /> New Event / 新しいイベント
+        </button>
+      )}
     </div>
   );
 }
@@ -942,6 +1376,12 @@ export default function AdminPage() {
   if (!isLoggedIn || userRole !== "super_admin") return null;
 
   const sections = [
+    {
+      id: "events",
+      label: "Events",
+      ja: "イベント",
+      icon: <CalendarDays size={14} />,
+    },
     { id: "venues", label: "Venues", ja: "会場", icon: <MapPin size={14} /> },
     {
       id: "categories",
@@ -1076,6 +1516,7 @@ export default function AdminPage() {
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          {activeSection === "events" && <EventsSection />}
           {activeSection === "venues" && <LocationsSection />}
           {activeSection === "categories" && <CategoriesSection />}
           {activeSection === "users" && <UsersSection />}
