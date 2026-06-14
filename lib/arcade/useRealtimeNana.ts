@@ -6,8 +6,9 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { NanaGameState, FlipTarget } from "@/types/arcade";
+import type { NanaGameState } from "@/types/arcade";
 import { flipCard } from "@/lib/arcade/nana-engine";
+import type { FlipTarget } from "@/lib/arcade/nana-engine";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
