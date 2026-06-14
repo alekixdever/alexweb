@@ -3,6 +3,8 @@
 // 在檔案頂部加入 import
 import { useApp } from "@/context/AppContext";
 import { contactList } from "@/data/users";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { LogIn, LogOut } from "lucide-react";
 import AvatarUpload from "@/components/AvatarUpload";
 import { useRouter } from "next/navigation";
@@ -10,6 +12,34 @@ import { useRouter } from "next/navigation";
 export default function RightSidebar() {
   const { isLoggedIn, openAuthModal, logout, user } = useApp();
   const router = useRouter();
+  // ── Presence ──────────────────────────────────────────────────────────────
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) return;
+    const supabase = createClient();
+
+    const channel = supabase.channel("global_presence", {
+      config: { presence: { key: user.id } },
+    });
+
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState<{ userId: string }>();
+      const ids = new Set(Object.keys(state));
+      setOnlineIds(ids);
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ userId: user.id, online: true });
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isLoggedIn, user?.id]);
+
   const displayName =
     user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
 
@@ -234,8 +264,9 @@ export default function RightSidebar() {
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background:
-                      i % 3 === 0 ? "var(--fg-muted)" : "var(--green)",
+                    background: onlineIds.has(u.id)
+                      ? "var(--green)"
+                      : "var(--fg-muted)",
                     border: "2px solid var(--bg-card)",
                   }}
                 />

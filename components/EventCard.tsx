@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useRealtimeParticipants } from "@/hooks/useRealtimeParticipants";
 import { useApp } from "@/context/AppContext";
 import { MapPin, Calendar, Users, Tag, MoreHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -47,13 +48,16 @@ export default function EventCard({
   locationColorBg,
 }: Props) {
   const { isLoggedIn, openAuthModal, user } = useApp();
-  const [joined, setJoined] = useState(false);
-  const [count, setCount] = useState(event.participant_count ?? 0);
   const [hovered, setHovered] = useState(false);
   const [location, setLocation] = useState<DBLocation | null>(null);
-  const [checking, setChecking] = useState(true);
   const supabase = createClient();
-
+  const {
+    count,
+    isJoined: joined,
+    isLoading: checking,
+    join: realtimeJoin,
+    leave: realtimeLeave,
+  } = useRealtimeParticipants(event.id, user?.id ?? null);
   useEffect(() => {
     const fetchLocation = async () => {
       const { data } = await supabase
@@ -66,68 +70,18 @@ export default function EventCard({
     fetchLocation();
   }, [event.location_id]);
 
-  useEffect(() => {
-    const checkJoined = async () => {
-      setChecking(true);
-      if (!user?.id) {
-        setChecking(false);
-        return;
-      }
-      const { data } = await supabase
-        .from("event_participants")
-        .select("id")
-        .eq("event_id", event.id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setJoined(!!data);
-      setChecking(false);
-    };
-    checkJoined();
-  }, [user?.id, event.id]);
-
   const handleJoin = async () => {
     if (!isLoggedIn) {
       openAuthModal("Join Event", { type: "JOIN_EVENT", eventId: event.id });
       return;
     }
-    if (joined || checking || !user?.id) return;
-    setChecking(true);
-
-    const { data: existing } = await supabase
-      .from("event_participants")
-      .select("id")
-      .eq("event_id", event.id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existing) {
-      setJoined(true);
-      setChecking(false);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("event_participants")
-      .insert({ event_id: event.id, user_id: user.id });
-
-    if (!error) {
-      setJoined(true);
-      setCount((c) => c + 1);
-    }
-    setChecking(false);
+    if (joined || checking) return;
+    await realtimeJoin();
   };
 
   const handleLeave = async () => {
     if (!user?.id) return;
-    const { error } = await supabase
-      .from("event_participants")
-      .delete()
-      .eq("event_id", event.id)
-      .eq("user_id", user.id);
-    if (!error) {
-      setJoined(false);
-      setCount((c) => Math.max(0, c - 1));
-    }
+    await realtimeLeave();
   };
 
   const handleViewParticipants = () => {
@@ -476,7 +430,7 @@ export default function EventCard({
           }}
         >
           <div style={{ display: "flex", alignItems: "center" }}>
-            {Array.from({ length: Math.min(3, count) }).map((_, i) => (
+            {Array.from({ length: Math.min(3, displayCount) }).map((_, i) => (
               <div
                 key={i}
                 style={{
@@ -503,7 +457,7 @@ export default function EventCard({
                 {["A", "B", "C"][i]}
               </div>
             ))}
-            {count > 3 && (
+            {displayCount > 3 && (
               <div
                 style={{
                   width: 20,
@@ -522,14 +476,14 @@ export default function EventCard({
                   zIndex: 0,
                 }}
               >
-                +{count - 3}
+                +{displayCount - 3}
               </div>
             )}
           </div>
           <span
             style={{ color: isLoggedIn ? "var(--green)" : "var(--fg-muted)" }}
           >
-            {count} participants / 参加者
+            {displayCount} participants / 参加者
             {!isLoggedIn && (
               <span style={{ color: "var(--fg-muted)", fontSize: 10 }}>
                 {" "}

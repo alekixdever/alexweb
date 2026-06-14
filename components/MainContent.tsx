@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
-
+import CommunityHub from "./CommunityHub";
 import { LayoutList, LayoutGrid, CalendarDays, Users } from "lucide-react";
 
 interface Props {
@@ -179,50 +179,7 @@ export default function MainContent({
             selectedCategory={selectedCategory}
           />
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "60px 20px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                marginBottom: 16,
-                background: "var(--bg-glass)",
-                border: "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 28,
-              }}
-            >
-              💬
-            </div>
-            <p
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: "var(--fg-secondary)",
-                marginBottom: 8,
-              }}
-            >
-              Community / コミュニティ
-            </p>
-            <p style={{ fontSize: 12, color: "var(--fg-muted)" }}>
-              Coming soon — Post area is under development.
-              <br />
-              <span style={{ fontSize: 11 }}>
-                コミュニティ機能は開発中です。
-              </span>
-            </p>
-          </div>
+          <CommunityHub />
         )}
       </div>
     </main>

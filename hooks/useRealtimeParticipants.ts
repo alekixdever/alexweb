@@ -2,7 +2,7 @@
 // Phase 5 — Realtime: Live participant count + join status per event
 // Do NOT modify AppContext. This hook is self-contained.
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Participant {
@@ -23,18 +23,17 @@ export function useRealtimeParticipants(
   eventId: string,
   currentUserId: string | null,
 ): UseRealtimeParticipantsReturn {
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // ── Initial fetch ──────────────────────────────────────────────────────────
   const fetchParticipants = useCallback(async () => {
     if (!eventId) return;
-    const { data, error } = await supabase
+    const { data, error } = await supabaseRef.current
       .from("event_participants")
       .select("user_id, joined_at")
       .eq("event_id", eventId);
-
     if (!error && data) setParticipants(data);
     setIsLoading(false);
   }, [eventId]);
@@ -45,7 +44,7 @@ export function useRealtimeParticipants(
 
     fetchParticipants();
 
-    const channel = supabase
+    const channel = supabaseRef.current
       .channel(`event_participants:${eventId}`)
       .on(
         "postgres_changes",
@@ -58,7 +57,6 @@ export function useRealtimeParticipants(
         (payload) => {
           const newRow = payload.new as Participant;
           setParticipants((prev) => {
-            // Guard against duplicates
             if (prev.some((p) => p.user_id === newRow.user_id)) return prev;
             return [...prev, newRow];
           });
@@ -82,28 +80,26 @@ export function useRealtimeParticipants(
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseRef.current.removeChannel(channel);
     };
   }, [eventId, fetchParticipants]);
 
   // ── Join ───────────────────────────────────────────────────────────────────
   const join = useCallback(async () => {
     if (!currentUserId || !eventId) return;
-    await supabase
+    await supabaseRef.current
       .from("event_participants")
       .insert({ event_id: eventId, user_id: currentUserId });
-    // Realtime INSERT will update state automatically
   }, [eventId, currentUserId]);
 
   // ── Leave ──────────────────────────────────────────────────────────────────
   const leave = useCallback(async () => {
     if (!currentUserId || !eventId) return;
-    await supabase
+    await supabaseRef.current
       .from("event_participants")
       .delete()
       .eq("event_id", eventId)
       .eq("user_id", currentUserId);
-    // Realtime DELETE will update state automatically
   }, [eventId, currentUserId]);
 
   return {
