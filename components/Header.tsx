@@ -21,7 +21,6 @@ export default function Header() {
   const [infoOpen, setInfoOpen] = useState(false);
   const isLight = theme === "light";
   const router = useRouter();
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
 
   return (
     <>
@@ -227,11 +226,7 @@ export default function Header() {
           <button
             onClick={() => {
               if (isLoggedIn && user?.id) {
-                if (window.innerWidth < 1024) {
-                  setRightDrawer(true);
-                } else {
-                  router.push(`/profile/${user.id}`);
-                }
+                router.push(`/profile/${user.id}`);
               } else {
                 openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" });
               }
