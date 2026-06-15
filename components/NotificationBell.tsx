@@ -49,7 +49,7 @@ function NotificationItem({
         gap: 3,
         padding: "10px 14px",
         borderBottom: "1px solid var(--border)",
-        background: notification.read ? "transparent" : "rgba(139,92,246,0.07)",
+        background: notification.read ? "transparent" : "rgba(139,92,246,0.7)",
         cursor: notification.link ? "pointer" : "default",
         transition: "background 0.15s ease",
       }}
