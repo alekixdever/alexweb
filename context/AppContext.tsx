@@ -23,7 +23,7 @@ interface PendingAction {
 interface AppState {
   isLoggedIn: boolean;
   user: User | null;
-  userRole: "member" | "admin" | "super_admin" | null; // 新增
+  userRole: "member" | "admin" | "super_admin" | null;
   authModalOpen: boolean;
   authModalAction: string;
   pendingAction: PendingAction | null;
@@ -35,7 +35,7 @@ interface AppState {
 
 interface AppContextType extends AppState {
   login: () => void;
-  userRole: "member" | "admin" | "super_admin" | null; // 新增
+  userRole: "member" | "admin" | "super_admin" | null;
   logout: () => Promise<void>;
   openAuthModal: (action: string, pending: PendingAction) => void;
   closeAuthModal: () => void;
@@ -55,7 +55,6 @@ function getAutoTheme(): Theme {
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
-  // TO
   const [state, setState] = useState<AppState>(() => {
     const savedTheme =
       typeof window !== "undefined"
@@ -74,6 +73,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       columnLayout: 1,
     };
   });
+
   useEffect(() => {
     const fetchSessionAndRole = async () => {
       const {
@@ -115,7 +115,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setState((prev) => {
           const pending = prev.pendingAction;
 
-          // Auto-execute pending JOIN_EVENT after login
           if (pending?.type === "JOIN_EVENT" && pending.eventId) {
             supabase
               .from("event_participants")
@@ -145,14 +144,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Apply theme to <html>
-  // TO
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", state.theme);
     localStorage.setItem("theme", state.theme);
   }, [state.theme]);
 
-  // Auto theme check every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setState((prev) => {
