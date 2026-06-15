@@ -32,7 +32,8 @@ function NotificationItem({
   notification: Notification;
   onRead: (id: string) => void;
 }) {
-  const message = lang === "ja" ? notification.message_ja : notification.message;
+  const message =
+    lang === "ja" ? notification.message_ja : notification.message;
 
   function handleClick() {
     if (!notification.read) onRead(notification.id);
@@ -53,8 +54,17 @@ function NotificationItem({
         transition: "background 0.15s ease",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <span style={{ fontSize: 13, color: "var(--fg-primary)", lineHeight: 1.4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{ fontSize: 13, color: "var(--fg-primary)", lineHeight: 1.4 }}
+        >
           {message}
         </span>
         {!notification.read && (
@@ -79,7 +89,9 @@ function NotificationItem({
 
 export default function NotificationBell() {
   const { user } = useApp();
-  const { notifications, unreadCount, markAsRead } = useRealtimeNotifications(user?.id);
+  const { notifications, unreadCount, markAsRead } = useRealtimeNotifications(
+    user?.id,
+  );
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +99,10 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     function handleOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -95,7 +110,37 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
-  if (!user) return null;
+  if (!user)
+    return (
+      <button
+        style={{
+          position: "relative",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: 6,
+          color: "var(--fg-primary)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        disabled
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      </button>
+    );
 
   return (
     <div ref={dropdownRef} style={{ position: "relative" }}>
@@ -116,7 +161,16 @@ export default function NotificationBell() {
         aria-label={t("Notifications", "通知")}
       >
         {/* Bell icon */}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
@@ -174,7 +228,13 @@ export default function NotificationBell() {
               alignItems: "center",
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-primary)" }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--fg-primary)",
+              }}
+            >
               {t("Notifications", "通知")}
             </span>
             {unreadCount > 0 && (
