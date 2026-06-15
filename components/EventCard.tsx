@@ -30,7 +30,7 @@ interface DBEvent {
     color: string;
   } | null;
   capacity: number | null;
-  capacity_enabled: boolean;
+  capacity_enabled: boolean | null;
 }
 
 interface DBLocation {
@@ -504,7 +504,9 @@ export default function EventCard({
             style={{ color: isLoggedIn ? "var(--green)" : "var(--fg-muted)" }}
           >
             {event.capacity_enabled && event.capacity ? (
-              <span style={{ color: isFull ? "var(--red)" : "var(--fg-muted)" }}>
+              <span
+                style={{ color: isFull ? "var(--red)" : "var(--fg-muted)" }}
+              >
                 {count} / {event.capacity} participants / 参加者
               </span>
             ) : (
@@ -557,13 +559,17 @@ export default function EventCard({
 
         <button
           onClick={joined ? handleLeave : isFull ? undefined : handleJoin}
-          disabled={checking || (isFull && !joined)}
+          disabled={checking || (!!isFull && !joined)}
           style={{
             width: "100%",
             padding: compact ? "7px" : "10px",
             borderRadius: "var(--radius-sm)",
             border: "none",
-            cursor: checking ? "wait" : isFull && !joined ? "not-allowed" : "pointer",
+            cursor: checking
+              ? "wait"
+              : isFull && !joined
+                ? "not-allowed"
+                : "pointer",
             fontWeight: 600,
             fontSize: compact ? 12 : 13,
             transition: "all 0.2s ease",
@@ -582,7 +588,9 @@ export default function EventCard({
                   ? "var(--fg-muted)"
                   : "#fff",
             boxShadow:
-              joined || checking || isFull ? "none" : "0 4px 16px var(--accent-glow)",
+              joined || checking || isFull
+                ? "none"
+                : "0 4px 16px var(--accent-glow)",
             opacity: checking || (isFull && !joined) ? 0.5 : 1,
           }}
         >
