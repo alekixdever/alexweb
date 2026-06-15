@@ -215,7 +215,7 @@ export default function NotificationBell() {
             borderRadius: "var(--radius)",
             border: "1px solid var(--border)",
             zIndex: 100,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.85)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}
         >
           {/* Header */}
