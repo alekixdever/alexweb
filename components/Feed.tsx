@@ -38,6 +38,8 @@ export default function Feed() {
     else setLoading(true);
     setError(null);
 
+    console.log("loadPosts called, user:", user?.id);
+
     const { data, error: err } = await supabase
       .from("posts")
       .select("*, profiles(name, avatar_url), events(title, title_ja)")
