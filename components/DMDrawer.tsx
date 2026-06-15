@@ -97,7 +97,7 @@ function ContactList({
 }: {
   currentUserId: string;
   onSelect: (profile: Profile) => void;
-  initialContactId?: string;
+  initialContactId?: string | null;
 }) {
   const [contacts, setContacts] = useState<ContactWithUnread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -503,7 +503,7 @@ function ConversationView({
 interface DMDrawerProps {
   open: boolean;
   onClose: () => void;
-  initialContactId?: string; // optional: open directly into a conversation
+  initialContactId?: string | null; // optional: open directly into a conversation
 }
 
 export default function DMDrawer({ open, onClose, initialContactId }: DMDrawerProps) {
