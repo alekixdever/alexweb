@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
 import CommunityHub from "./CommunityHub";
-import { LayoutList, LayoutGrid, CalendarDays, Users } from "lucide-react";
+import { LayoutList, LayoutGrid, CalendarDays, Users, Search, X } from "lucide-react";
 
 interface Props {
   selectedLocation: string;
@@ -19,6 +19,7 @@ export default function MainContent({
 }: Props) {
   const { columnLayout, setColumnLayout } = useApp();
   const [activeTab, setActiveTab] = useState<"events" | "community">("events");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isAll = selectedLocation === "all";
   const locationName = selectedLocation === "all" ? "All Venues / 全会場" : "";
@@ -113,6 +114,70 @@ export default function MainContent({
         )}
       </div>
 
+      {/* [MAX] Search bar — events tab only, Sprint 3 */}
+      {activeTab === "events" && (
+        <div
+          style={{
+            position: "relative",
+            marginBottom: "var(--gap)",
+            flexShrink: 0,
+          }}
+        >
+          <Search
+            size={13}
+            style={{
+              position: "absolute",
+              left: 11,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--fg-muted)",
+              pointerEvents: "none",
+            }}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search events… / イベントを検索… (title, tags)"
+            style={{
+              width: "100%",
+              padding: "9px 32px 9px 32px",
+              background: "var(--bg-glass)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--fg-primary)",
+              fontSize: 13,
+              outline: "none",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+              transition: "border-color 0.15s",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--fg-muted)",
+                display: "flex",
+                alignItems: "center",
+                padding: 2,
+              }}
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Main content tabs */}
       <div
         style={{
@@ -177,6 +242,7 @@ export default function MainContent({
             selectedLocation={selectedLocation}
             selectedDate={selectedDate}
             selectedCategory={selectedCategory}
+            searchQuery={searchQuery}
           />
         ) : (
           <CommunityHub />

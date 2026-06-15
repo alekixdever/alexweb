@@ -1,53 +1,47 @@
-"use client";
+"use client"
 
 // [JANE] CommentSection.tsx
 // Owner: Jane | Realtime & Presence
-// Fix: [MAX] replaced setAuthModalOpen/setAuthModalAction with openAuthModal (2026-06-15)
 // Uses: useRealtimeComments hook (Jane)
 // Integrated by: Max → EventCard.tsx
+// Last updated: 2026-06-15
 
-import { useState, useRef, useEffect } from "react";
-import { useRealtimeComments } from "@/hooks/useRealtimeComments";
-import { useApp } from "@/context/AppContext";
+import { useState, useRef, useEffect } from "react"
+import { useRealtimeComments } from "@/hooks/useRealtimeComments"
+import { useApp } from "@/context/AppContext"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Comment {
-  id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
+  id: string
+  user_id: string
+  content: string
+  created_at: string
   profiles?: {
-    name: string;
-    avatar_url?: string | null;
-  };
+    name: string
+    avatar_url: string | null
+  } | null
 }
 
 interface CommentSectionProps {
-  eventId: string;
+  eventId: string
   /** Optional: collapse into a toggle button when false */
-  defaultOpen?: boolean;
+  defaultOpen?: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now / たった今";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "just now / たった今"
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
-function Avatar({
-  name,
-  avatarUrl,
-}: {
-  name: string;
-  avatarUrl?: string | null;
-}) {
+function Avatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   if (avatarUrl) {
     return (
       <img
@@ -62,14 +56,14 @@ function Avatar({
           border: "1.5px solid var(--border)",
         }}
       />
-    );
+    )
   }
   const initials = name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
   return (
     <div
       style={{
@@ -89,72 +83,65 @@ function Avatar({
     >
       {initials}
     </div>
-  );
+  )
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function CommentSection({
-  eventId,
-  defaultOpen = false,
-}: CommentSectionProps) {
-  // [MAX FIX] AppContext exposes openAuthModal(action, pending), not individual setters
-  const { user, isLoggedIn, openAuthModal } = useApp();
-  const { comments, postComment, deleteComment } = useRealtimeComments(
-    eventId,
-    user?.id ?? null,
-  );
+export default function CommentSection({ eventId, defaultOpen = false }: CommentSectionProps) {
+  const { user, isLoggedIn, setAuthModalOpen, setAuthModalAction } = useApp()
+  const { comments, postComment, deleteComment } = useRealtimeComments(eventId, user?.id ?? null)
 
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [draft, setDraft] = useState("");
-  const [isPosting, setIsPosting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const listEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [draft, setDraft] = useState("")
+  const [isPosting, setIsPosting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const listEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-scroll to latest comment when new ones arrive
   useEffect(() => {
     if (isOpen && listEndRef.current) {
-      listEndRef.current.scrollIntoView({ behavior: "smooth" });
+      listEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [comments, isOpen]);
+  }, [comments, isOpen])
 
   // Auto-resize textarea
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [draft]);
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [draft])
 
   async function handlePost() {
     if (!isLoggedIn) {
-      // [MAX FIX] Use openAuthModal with COMMENT pending action
-      openAuthModal("Comment", { type: "COMMENT", eventId });
-      return;
+      setAuthModalAction("comment")
+      setAuthModalOpen(true)
+      return
     }
-    const trimmed = draft.trim();
-    if (!trimmed) return;
-    setIsPosting(true);
-    setError(null);
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    setIsPosting(true)
+    setError(null)
     try {
-      await postComment(trimmed);
-      setDraft("");
+      await postComment(trimmed)
+      setDraft("")
     } catch {
-      setError("Failed to post. / 投稿できませんでした。");
+      setError("Failed to post. / 投稿できませんでした。")
     } finally {
-      setIsPosting(false);
+      setIsPosting(false)
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handlePost();
+      e.preventDefault()
+      handlePost()
     }
   }
 
-  const count = comments?.length ?? 0;
+  const count = comments?.length ?? 0
 
   // ── Toggle Header ────────────────────────────────────────────────────────────
   return (
@@ -214,14 +201,13 @@ export default function CommentSection({
                   padding: "16px 0",
                 }}
               >
-                No comments yet. Be the first! /
-                まだコメントはありません。最初に投稿しましょう！
+                No comments yet. Be the first! / まだコメントはありません。最初に投稿しましょう！
               </p>
             )}
 
-            {comments?.map((c: Comment) => {
-              const isOwn = c.user_id === user?.id;
-              const displayName = c.profiles?.name ?? "Member";
+            {comments?.map((c) => {
+              const isOwn = c.user_id === user?.id
+              const displayName = c.profiles?.name ?? "Member"
 
               return (
                 <div
@@ -232,10 +218,7 @@ export default function CommentSection({
                     alignItems: "flex-start",
                   }}
                 >
-                  <Avatar
-                    name={displayName}
-                    avatarUrl={c.profiles?.avatar_url}
-                  />
+                  <Avatar name={displayName} avatarUrl={c.profiles?.avatar_url} />
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {/* Name + time */}
@@ -298,19 +281,17 @@ export default function CommentSection({
                         transition: "color 0.15s",
                       }}
                       onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLButtonElement).style.color =
-                          "var(--red)")
+                        ((e.currentTarget as HTMLButtonElement).style.color = "var(--red)")
                       }
                       onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLButtonElement).style.color =
-                          "var(--fg-muted)")
+                        ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)")
                       }
                     >
                       ✕
                     </button>
                   )}
                 </div>
-              );
+              )
             })}
             <div ref={listEndRef} />
           </div>
@@ -328,7 +309,10 @@ export default function CommentSection({
           >
             {/* Current user avatar */}
             {isLoggedIn && user && (
-              <Avatar name={user.email ?? "Me"} avatarUrl={null} />
+              <Avatar
+                name={user.email ?? "Me"}
+                avatarUrl={null}
+              />
             )}
 
             <div style={{ flex: 1 }}>
@@ -361,16 +345,14 @@ export default function CommentSection({
                   boxSizing: "border-box",
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border-hover)";
+                  e.currentTarget.style.borderColor = "var(--border-hover)"
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.borderColor = "var(--border)"
                 }}
               />
               {error && (
-                <p style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>
-                  {error}
-                </p>
+                <p style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>{error}</p>
               )}
             </div>
 
@@ -387,15 +369,11 @@ export default function CommentSection({
                 cursor: isPosting ? "wait" : "pointer",
               }}
             >
-              {isPosting
-                ? "…"
-                : isLoggedIn
-                  ? "Post / 投稿"
-                  : "Login / ログイン"}
+              {isPosting ? "…" : isLoggedIn ? "Post / 投稿" : "Login / ログイン"}
             </button>
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }

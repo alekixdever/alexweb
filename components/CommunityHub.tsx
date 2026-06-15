@@ -6,17 +6,12 @@
 // Mobile: icon only | Desktop: icon + label
 //
 // [JANE] 2026-06-15 — Added RankingTab (reads arcade_rankings via Supabase)
+// [JANE] 2026-06-15 — Added DiscussionTab (event list → CommentSection)
 // ⚠️ arcade_rankings table owned by [ERIC] — read-only access here
 import ArcadeLobby from "./arcade/ArcadeLobby";
+import CommentSection from "./CommentSection";
 import { useState, useEffect } from "react";
-import {
-  Rss,
-  Gamepad2,
-  Trophy,
-  MessageSquare,
-  Star,
-  Medal,
-} from "lucide-react";
+import { Rss, Gamepad2, Trophy, MessageSquare, Star, Medal, ChevronLeft, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -70,63 +65,53 @@ const TABS: TabConfig[] = [
 
 // ── Types: Ranking ─────────────────────────────────────────────────────────
 interface RankingRow {
-  user_id: string;
-  game_id: string;
-  best_score: number;
-  accuracy: number | null;
-  updated_at: string;
-  profiles?: { name: string; avatar_url?: string | null };
+  user_id: string
+  game_id: string
+  best_score: number
+  accuracy: number | null
+  updated_at: string
+  profiles?: { name: string; avatar_url?: string | null }
 }
 
-type GameFilter = "all" | "stroop" | "nana";
+type GameFilter = "all" | "stroop" | "nana"
 
 // ── RankingTab ─────────────────────────────────────────────────────────────
 // [JANE] Reads arcade_rankings (owned by Eric) — read-only, no writes here
 function RankingTab() {
-  const [rows, setRows] = useState<RankingRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<GameFilter>("all");
+  const [rows, setRows] = useState<RankingRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<GameFilter>("all")
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
-      const supabase = createClient();
+      setLoading(true)
+      const supabase = createClient()
       const query = supabase
         .from("arcade_rankings")
         .select("*, profiles(name, avatar_url)")
         .order("best_score", { ascending: false })
-        .limit(20);
+        .limit(20)
 
-      if (filter !== "all") query.eq("game_id", filter);
+      if (filter !== "all") query.eq("game_id", filter)
 
-      const { data, error } = await query;
-      if (!error && data) setRows(data as RankingRow[]);
-      setLoading(false);
+      const { data, error } = await query
+      if (!error && data) setRows(data as RankingRow[])
+      setLoading(false)
     }
-    load();
-  }, [filter]);
+    load()
+  }, [filter])
 
   const GAME_LABELS: Record<string, string> = {
     stroop: "Stroop",
     nana: "Nana",
-  };
+  }
 
-  const MEDAL_COLORS = ["var(--yellow)", "var(--fg-secondary)", "#cd7f32"];
+  const MEDAL_COLORS = ["var(--yellow)", "var(--fg-secondary)", "#cd7f32"]
 
   return (
-    <div
-      className="float-card"
-      style={{ padding: 20, borderRadius: "var(--radius)" }}
-    >
+    <div className="float-card" style={{ padding: 20, borderRadius: "var(--radius)" }}>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <p className="label-xs">Ranking / ランキング</p>
           <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
@@ -147,10 +132,8 @@ function RankingTab() {
                 borderRadius: 99,
                 border: "1px solid",
                 borderColor: filter === g ? "var(--accent)" : "var(--border)",
-                background:
-                  filter === g ? "rgba(139,92,246,0.12)" : "transparent",
-                color:
-                  filter === g ? "var(--accent-bright)" : "var(--fg-muted)",
+                background: filter === g ? "rgba(139,92,246,0.12)" : "transparent",
+                color: filter === g ? "var(--accent-bright)" : "var(--fg-muted)",
                 cursor: "pointer",
                 transition: "all 0.15s",
                 whiteSpace: "nowrap",
@@ -164,73 +147,38 @@ function RankingTab() {
 
       {/* Table */}
       {loading ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "32px 0",
-            color: "var(--fg-muted)",
-            fontSize: 13,
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "32px 0", color: "var(--fg-muted)", fontSize: 13 }}>
           Loading… / 読み込み中…
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px 0",
-            color: "var(--fg-muted)",
-            fontSize: 13,
-          }}
-        >
+        <div style={{
+          textAlign: "center", padding: "40px 0",
+          color: "var(--fg-muted)", fontSize: 13,
+        }}>
           <Trophy size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-          <p>
-            No scores yet. Play a game! /
-            まだスコアはありません。ゲームを遊ぼう！
-          </p>
+          <p>No scores yet. Play a game! / まだスコアはありません。ゲームを遊ぼう！</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {/* Column headers */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "32px 1fr 80px 64px 64px",
-              gap: 8,
-              padding: "0 8px 6px",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            {[
-              "#",
-              "Player / プレイヤー",
-              "Game / ゲーム",
-              "Score / スコア",
-              "Acc / 正確",
-            ].map((h) => (
-              <span
-                key={h}
-                style={{
-                  fontSize: 10,
-                  color: "var(--fg-muted)",
-                  fontWeight: 600,
-                  letterSpacing: "0.05em",
-                }}
-              >
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "32px 1fr 80px 64px 64px",
+            gap: 8,
+            padding: "0 8px 6px",
+            borderBottom: "1px solid var(--border)",
+          }}>
+            {["#", "Player / プレイヤー", "Game / ゲーム", "Score / スコア", "Acc / 正確"].map((h) => (
+              <span key={h} style={{ fontSize: 10, color: "var(--fg-muted)", fontWeight: 600, letterSpacing: "0.05em" }}>
                 {h}
               </span>
             ))}
           </div>
 
           {rows.map((row, i) => {
-            const name = row.profiles?.name ?? "Member";
-            const initials = name
-              .split(" ")
-              .map((w) => w[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2);
-            const medalColor = MEDAL_COLORS[i] ?? null;
+            const name = row.profiles?.name ?? "Member"
+            const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+            const medalColor = MEDAL_COLORS[i] ?? null
 
             return (
               <div
@@ -245,122 +193,231 @@ function RankingTab() {
                   background: i === 0 ? "rgba(251,191,36,0.06)" : "transparent",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background =
-                    "var(--bg-glass)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background =
-                    i === 0 ? "rgba(251,191,36,0.06)" : "transparent";
-                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "var(--bg-glass)" }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = i === 0 ? "rgba(251,191,36,0.06)" : "transparent" }}
               >
                 {/* Rank */}
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: medalColor ?? "var(--fg-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: medalColor ?? "var(--fg-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                }}>
                   {i < 3 ? <Medal size={14} color={medalColor!} /> : i + 1}
                 </span>
 
                 {/* Player */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    minWidth: 0,
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                   {row.profiles?.avatar_url ? (
-                    <img
-                      src={row.profiles.avatar_url}
-                      alt={name}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        flexShrink: 0,
-                      }}
-                    />
+                    <img src={row.profiles.avatar_url} alt={name} style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   ) : (
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        background: "var(--accent-glow)",
-                        border: "1px solid var(--accent)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 9,
-                        fontWeight: 700,
-                        color: "var(--accent-bright)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {initials}
-                    </div>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: "50%",
+                      background: "var(--accent-glow)", border: "1px solid var(--accent)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 700, color: "var(--accent-bright)", flexShrink: 0,
+                    }}>{initials}</div>
                   )}
-                  <span
-                    style={{
-                      fontSize: 13,
-                      color: "var(--fg-primary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <span style={{ fontSize: 13, color: "var(--fg-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {name}
                   </span>
                 </div>
 
                 {/* Game */}
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "var(--fg-muted)",
-                    fontWeight: 500,
-                  }}
-                >
+                <span style={{ fontSize: 11, color: "var(--fg-muted)", fontWeight: 500 }}>
                   {GAME_LABELS[row.game_id] ?? row.game_id}
                 </span>
 
                 {/* Score */}
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "var(--accent-bright)",
-                    textAlign: "right",
-                  }}
-                >
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-bright)", textAlign: "right" }}>
                   {row.best_score.toLocaleString()}
                 </span>
 
                 {/* Accuracy */}
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "var(--green)",
-                    textAlign: "right",
-                  }}
-                >
+                <span style={{ fontSize: 12, color: "var(--green)", textAlign: "right" }}>
                   {row.accuracy != null ? `${row.accuracy}%` : "—"}
                 </span>
               </div>
-            );
+            )
           })}
         </div>
       )}
     </div>
-  );
+  )
+}
+
+// ── Types: Discussion ──────────────────────────────────────────────────────
+interface DiscussionEvent {
+  id: string
+  title: string
+  title_ja: string
+  date: string
+  comment_count: number
+}
+
+// ── DiscussionTab ──────────────────────────────────────────────────────────
+// [JANE] Two-panel: event list → CommentSection (useRealtimeComments)
+// Reads: events table (read-only), comments table via CommentSection/hook
+function DiscussionTab() {
+  const [events, setEvents] = useState<DiscussionEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<DiscussionEvent | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
+
+      // Load upcoming + recent events, with comment counts
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, title_ja, date, comments(count)")
+        .order("date", { ascending: false })
+        .limit(30)
+
+      if (data) {
+        const rows: DiscussionEvent[] = data.map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          title_ja: e.title_ja,
+          date: e.date,
+          comment_count: e.comments?.[0]?.count ?? 0,
+        }))
+        setEvents(rows)
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function formatDate(dateStr: string) {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric", weekday: "short" })
+  }
+
+  // ── Panel: Event list ────────────────────────────────────────────────────
+  if (!selected) {
+    return (
+      <div className="float-card" style={{ padding: 20, borderRadius: "var(--radius)" }}>
+        <div style={{ marginBottom: 16 }}>
+          <p className="label-xs">Discussion / ディスカッション</p>
+          <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
+            Select an event to discuss / イベントを選んでコメントする
+          </p>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "var(--fg-muted)", fontSize: 13 }}>
+            Loading… / 読み込み中…
+          </div>
+        ) : events.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--fg-muted)", fontSize: 13 }}>
+            <MessageSquare size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
+            <p>No events yet. / イベントはまだありません。</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {events.map((ev) => (
+              <button
+                key={ev.id}
+                onClick={() => setSelected(ev)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s",
+                  width: "100%",
+                }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.background = "var(--bg-glass)"
+                  el.style.borderColor = "var(--border-hover)"
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.background = "transparent"
+                  el.style.borderColor = "var(--border)"
+                }}
+              >
+                {/* Calendar icon */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: "var(--radius-sm)",
+                  background: "var(--accent-glow)", border: "1px solid var(--accent)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <CalendarDays size={16} color="var(--accent-bright)" />
+                </div>
+
+                {/* Title + date */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: 13, fontWeight: 600, color: "var(--fg-primary)",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    marginBottom: 2,
+                  }}>
+                    {ev.title}
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                    {ev.title_ja} · {formatDate(ev.date)}
+                  </p>
+                </div>
+
+                {/* Comment count badge */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: 11, color: "var(--fg-muted)", flexShrink: 0,
+                }}>
+                  <MessageSquare size={12} />
+                  <span>{ev.comment_count}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Panel: Comments for selected event ───────────────────────────────────
+  return (
+    <div className="float-card" style={{ padding: 20, borderRadius: "var(--radius)" }}>
+      {/* Back + event header */}
+      <div style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => setSelected(null)}
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--fg-muted)", fontSize: 12, padding: "0 0 8px",
+            transition: "color 0.15s",
+          }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--accent-bright)")}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)")}
+        >
+          <ChevronLeft size={14} />
+          Back / 戻る
+        </button>
+
+        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--fg-primary)" }}>
+          {selected.title}
+        </p>
+        <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
+          {selected.title_ja} · {formatDate(selected.date)}
+        </p>
+      </div>
+
+      {/* CommentSection — defaultOpen since user explicitly navigated here */}
+      <CommentSection eventId={selected.id} defaultOpen={true} />
+    </div>
+  )
 }
 
 // ── Placeholder ────────────────────────────────────────────────────────────
@@ -460,6 +517,8 @@ export default function CommunityHub() {
         <ArcadeLobby />
       ) : activeTab === "ranking" ? (
         <RankingTab />
+      ) : activeTab === "discussion" ? (
+        <DiscussionTab />
       ) : (
         <TabPlaceholder tab={currentTab} />
       )}

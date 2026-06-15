@@ -36,12 +36,14 @@ interface Props {
   selectedLocation: string;
   selectedDate: string;
   selectedCategory: string;
+  searchQuery?: string;
 }
 
 export default function EventList({
   selectedLocation,
   selectedDate,
   selectedCategory,
+  searchQuery = "",
 }: Props) {
   const { columnLayout } = useApp();
   const [events, setEvents] = useState<DBEvent[]>([]);
@@ -101,6 +103,19 @@ export default function EventList({
     fetchData();
   }, [selectedLocation, selectedDate, selectedCategory]);
 
+  // [MAX] Client-side search filter — title / title_ja / description / tags
+  const q = searchQuery.trim().toLowerCase();
+  const filteredEvents = q
+    ? events.filter((e) =>
+        e.title.toLowerCase().includes(q) ||
+        e.title_ja.toLowerCase().includes(q) ||
+        e.description?.toLowerCase().includes(q) ||
+        e.description_ja?.toLowerCase().includes(q) ||
+        (e.tags ?? []).some((t) => t.toLowerCase().includes(q)) ||
+        (e.tags_ja ?? []).some((t) => t.toLowerCase().includes(q))
+      )
+    : events;
+
   if (loading) {
     return (
       <div
@@ -122,9 +137,13 @@ export default function EventList({
     );
   }
 
-  if (events.length === 0) {
+  if (filteredEvents.length === 0) {
     return (
-      <EmptyState message="Try selecting a different date or venue. / 他の日付や会場をお試しください。" />
+      <EmptyState message={
+        q
+          ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
+          : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+      } />
     );
   }
 
@@ -133,13 +152,17 @@ export default function EventList({
     const grouped = locations
       .map((loc) => ({
         location: loc,
-        events: events.filter((e) => e.location_id === loc.id),
+        events: filteredEvents.filter((e) => e.location_id === loc.id),
       }))
       .filter((g) => g.events.length > 0);
 
     if (grouped.length === 0) {
       return (
-        <EmptyState message="Try selecting a different date or venue. / 他の日付や会場をお試しください。" />
+        <EmptyState message={
+          q
+            ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
+            : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+        } />
       );
     }
 
@@ -238,7 +261,7 @@ export default function EventList({
         paddingBottom: 16,
       }}
     >
-      {events.map((event) => (
+      {filteredEvents.map((event) => (
         <EventCard
           key={event.id}
           event={event}
