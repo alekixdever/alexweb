@@ -55,17 +55,24 @@ function getAutoTheme(): Theme {
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
-  const [state, setState] = useState<AppState>({
-    isLoggedIn: false,
-    user: null,
-    userRole: null, // 新增
-    authModalOpen: false,
-    authModalAction: "",
-    pendingAction: null,
-    leftDrawerOpen: false,
-    rightDrawerOpen: false,
-    theme: getAutoTheme(),
-    columnLayout: 1,
+  // TO
+  const [state, setState] = useState<AppState>(() => {
+    const savedTheme =
+      typeof window !== "undefined"
+        ? (localStorage.getItem("theme") as Theme | null)
+        : null;
+    return {
+      isLoggedIn: false,
+      user: null,
+      userRole: null,
+      authModalOpen: false,
+      authModalAction: "",
+      pendingAction: null,
+      leftDrawerOpen: false,
+      rightDrawerOpen: false,
+      theme: savedTheme ?? getAutoTheme(),
+      columnLayout: 1,
+    };
   });
   useEffect(() => {
     const fetchSessionAndRole = async () => {
@@ -139,8 +146,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Apply theme to <html>
+  // TO
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", state.theme);
+    localStorage.setItem("theme", state.theme);
   }, [state.theme]);
 
   // Auto theme check every minute
