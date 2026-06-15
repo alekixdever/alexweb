@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "天神書齋 Tenjin Shosai",
   description:
     "Connecting people through events and culture. イベントと文化で人々をつなぐ。",
+  manifest: "/manifest.json",
+  themeColor: "#8b5cf6",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "天神書齋",
+  },
 };
 
 export default function RootLayout({
@@ -16,6 +23,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#8b5cf6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="天神書齋" />
+        <link rel="apple-touch-icon" href="/tenjinshosai_logo.png" />
+      </head>
       <body>
         <AuthProvider>
           <AppProvider>{children}</AppProvider>

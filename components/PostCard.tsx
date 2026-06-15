@@ -119,6 +119,11 @@ export default function PostCard({ post, onDelete, onLikeToggle }: PostCardProps
   const [likeCount, setLikeCount] = useState(post.like_count ?? 0);
   const [liking, setLiking] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  // ESC to close lightbox
+  const closeLightbox = () => setLightbox(false);
 
   const isOwn = user?.id === post.user_id;
   const displayName = post.profiles?.name ?? "Member";
@@ -260,17 +265,104 @@ export default function PostCard({ post, onDelete, onLikeToggle }: PostCardProps
 
       {/* ── Image (optional) ── */}
       {post.image_url && (
-        <img
-          src={post.image_url}
-          alt="post image"
-          style={{
-            width: "100%",
-            borderRadius: "var(--radius-sm)",
-            objectFit: "cover",
-            maxHeight: 320,
-            border: "1px solid var(--border)",
-          }}
-        />
+        <>
+          {imgError ? (
+            <div
+              style={{
+                width: "100%",
+                maxHeight: 400,
+                minHeight: 80,
+                borderRadius: "var(--radius-sm)",
+                border: "1px dashed var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--fg-muted)",
+                fontSize: 12,
+                gap: 6,
+                background: "var(--bg-glass)",
+              }}
+            >
+              <span>⚠️</span>
+              <span>Image unavailable / 画像を読み込めません</span>
+            </div>
+          ) : (
+            <img
+              src={post.image_url}
+              alt="post image / 投稿画像"
+              onClick={() => setLightbox(true)}
+              onError={() => setImgError(true)}
+              style={{
+                width: "100%",
+                borderRadius: "var(--radius-sm)",
+                objectFit: "cover",
+                maxHeight: 400,
+                border: "1px solid var(--border)",
+                cursor: "zoom-in",
+                display: "block",
+              }}
+            />
+          )}
+
+          {/* Lightbox */}
+          {lightbox && (
+            <div
+              onClick={closeLightbox}
+              onKeyDown={(e) => e.key === "Escape" && closeLightbox()}
+              tabIndex={0}
+              role="dialog"
+              aria-label="Image lightbox / 画像拡大表示"
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 9999,
+                background: "rgba(0,0,0,0.88)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 24,
+                cursor: "zoom-out",
+              }}
+            >
+              <img
+                src={post.image_url}
+                alt="post image enlarged / 拡大画像"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "90vh",
+                  borderRadius: "var(--radius)",
+                  objectFit: "contain",
+                  boxShadow: "0 8px 48px rgba(0,0,0,0.6)",
+                  cursor: "default",
+                }}
+              />
+              <button
+                onClick={closeLightbox}
+                aria-label="Close / 閉じる"
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  right: 20,
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: 36,
+                  height: 36,
+                  color: "#fff",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Footer: Like ── */}

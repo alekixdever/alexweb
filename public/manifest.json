@@ -1,0 +1,22 @@
+{
+  "name": "天神書齋 Tenjin Shosai",
+  "short_name": "天神書齋",
+  "description": "Bilingual event & social platform for Tenjin Shosai café",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090e",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/tenjinshosai_logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/tenjinshosai_logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

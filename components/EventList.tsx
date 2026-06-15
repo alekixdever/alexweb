@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
 import EventCard from "./EventCard";
 import EmptyState from "./EmptyState";
 import { MapPin } from "lucide-react";
+
+const PAGE_SIZE = 10;
 
 interface DBEvent {
   id: string;
@@ -51,61 +53,71 @@ export default function EventList({
   const [events, setEvents] = useState<DBEvent[]>([]);
   const [locations, setLocations] = useState<DBLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const supabase = createClient();
   const isAll = selectedLocation === "all";
 
+  const fetchData = useCallback(async (currentLimit: number) => {
+    // Fetch locations
+    const { data: locData } = await supabase
+      .from("locations")
+      .select("*")
+      .order("name");
+    setLocations(locData ?? []);
+
+    // Date from: selectedDate or today
+    const today = new Date().toISOString().split("T")[0];
+    const dateFrom = selectedDate
+      ? `${selectedDate}T00:00:00`
+      : `${today}T00:00:00`;
+
+    // Build events query — fetch limit+1 to detect hasMore
+    let query = supabase
+      .from("events")
+      .select("*, event_participants(count), activity_categories(name, name_ja, color)")
+      .gte("date", dateFrom)
+      .order("date")
+      .limit(currentLimit + 1);
+
+    if (!isAll) query = query.eq("location_id", selectedLocation);
+    if (selectedCategory !== "all") query = query.eq("category_id", selectedCategory);
+
+    const { data: evtData } = await query;
+    const raw = evtData ?? [];
+
+    setHasMore(raw.length > currentLimit);
+    const sliced = raw.slice(0, currentLimit);
+
+    const normalized = sliced.map((e) => ({
+      ...e,
+      participant_count: Array.isArray(e.event_participants)
+        ? (e.event_participants[0]?.count ?? 0)
+        : 0,
+      category: e.activity_categories ?? null,
+    }));
+
+    setEvents(normalized);
+  }, [selectedLocation, selectedDate, selectedCategory, isAll]);
+
+  // Reset and reload when filters change
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      // Fetch locations
-      const { data: locData } = await supabase
-        .from("locations")
-        .select("*")
-        .order("name");
-      setLocations(locData ?? []);
-
-      // Build events query
-      let query = supabase
-        .from("events")
-        .select(
-          "*, event_participants(count), activity_categories(name, name_ja, color)",
-        )
-        .order("date");
-
-      if (!isAll) {
-        query = query.eq("location_id", selectedLocation);
-      }
-
-      if (selectedDate) {
-        const start = `${selectedDate}T00:00:00`;
-        const end = `${selectedDate}T23:59:59`;
-        query = query.gte("date", start).lte("date", end);
-      }
-
-      if (selectedCategory !== "all") {
-        query = query.eq("category_id", selectedCategory);
-      }
-
-      const { data: evtData } = await query;
-
-      // Normalize participant_count
-      const normalized = (evtData ?? []).map((e) => ({
-        ...e,
-        participant_count: Array.isArray(e.event_participants)
-          ? (e.event_participants[0]?.count ?? 0)
-          : 0,
-        category: e.activity_categories ?? null,
-      }));
-
-      setEvents(normalized);
-      setLoading(false);
-    };
-
-    fetchData();
+    setLoading(true);
+    setLimit(PAGE_SIZE);
+    fetchData(PAGE_SIZE).finally(() => setLoading(false));
   }, [selectedLocation, selectedDate, selectedCategory]);
 
-  // [MAX] Client-side search filter — title / title_ja / description / tags
+  // Load more
+  async function handleShowMore() {
+    const newLimit = limit + PAGE_SIZE;
+    setLoadingMore(true);
+    setLimit(newLimit);
+    await fetchData(newLimit);
+    setLoadingMore(false);
+  }
+
+  // Client-side search filter
   const q = searchQuery.trim().toLowerCase();
   const filteredEvents = q
     ? events.filter(
@@ -121,9 +133,7 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div
-        style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}>
         {[1, 2, 3].map((i) => (
           <div
             key={i}
@@ -146,11 +156,26 @@ export default function EventList({
         message={
           q
             ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
-            : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+            : "No upcoming events. / 今後のイベントはありません。"
         }
       />
     );
   }
+
+  // Show More button
+  const ShowMoreBtn = () =>
+    hasMore ? (
+      <div style={{ textAlign: "center", marginTop: 16 }}>
+        <button
+          onClick={handleShowMore}
+          disabled={loadingMore}
+          className="btn-secondary"
+          style={{ minWidth: 160 }}
+        >
+          {loadingMore ? "Loading… / 読み込み中…" : "Show More / もっと見る"}
+        </button>
+      </div>
+    ) : null;
 
   // All venues — group by location
   if (isAll) {
@@ -167,21 +192,14 @@ export default function EventList({
           message={
             q
               ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
-              : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+              : "No upcoming events. / 今後のイベントはありません。"
           }
         />
       );
     }
 
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
-          paddingBottom: 16,
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 16 }}>
         {grouped.map(({ location, events: locEvents }) => (
           <div key={location.id}>
             {/* Location header */}
@@ -214,13 +232,7 @@ export default function EventList({
                 <MapPin size={13} style={{ color: location.color }} />
               </div>
               <div>
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: location.color,
-                  }}
-                >
+                <p style={{ fontSize: 13, fontWeight: 700, color: location.color }}>
                   {location.name}
                 </p>
                 <p style={{ fontSize: 10, color: "var(--fg-muted)" }}>
@@ -235,8 +247,7 @@ export default function EventList({
               style={{
                 display: columnLayout === 3 ? "grid" : "flex",
                 flexDirection: columnLayout === 3 ? undefined : "column",
-                gridTemplateColumns:
-                  columnLayout === 3 ? "repeat(3, 1fr)" : undefined,
+                gridTemplateColumns: columnLayout === 3 ? "repeat(3, 1fr)" : undefined,
                 gap: "var(--gap)",
               }}
             >
@@ -252,6 +263,7 @@ export default function EventList({
             </div>
           </div>
         ))}
+        <ShowMoreBtn />
       </div>
     );
   }
@@ -259,24 +271,26 @@ export default function EventList({
   // Single location
   const loc = locations.find((l) => l.id === selectedLocation);
   return (
-    <div
-      style={{
-        display: columnLayout === 3 ? "grid" : "flex",
-        flexDirection: columnLayout === 3 ? undefined : "column",
-        gridTemplateColumns: columnLayout === 3 ? "repeat(3, 1fr)" : undefined,
-        gap: "var(--gap)",
-        paddingBottom: 16,
-      }}
-    >
-      {filteredEvents.map((event) => (
-        <EventCard
-          key={event.id}
-          event={event}
-          compact={columnLayout === 3}
-          locationColor={loc?.color}
-          locationColorBg={loc?.color_bg}
-        />
-      ))}
+    <div style={{ paddingBottom: 16 }}>
+      <div
+        style={{
+          display: columnLayout === 3 ? "grid" : "flex",
+          flexDirection: columnLayout === 3 ? undefined : "column",
+          gridTemplateColumns: columnLayout === 3 ? "repeat(3, 1fr)" : undefined,
+          gap: "var(--gap)",
+        }}
+      >
+        {filteredEvents.map((event) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            compact={columnLayout === 3}
+            locationColor={loc?.color}
+            locationColorBg={loc?.color_bg}
+          />
+        ))}
+      </div>
+      <ShowMoreBtn />
     </div>
   );
 }
