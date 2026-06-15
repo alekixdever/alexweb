@@ -20,8 +20,8 @@ interface Comment {
   created_at: string;
   profiles?: {
     name: string;
-    avatar_url?: string | null;
-  };
+    avatar_url: string | null;
+  } | null;
 }
 
 interface CommentSectionProps {
@@ -231,7 +231,7 @@ export default function CommentSection({
               </p>
             )}
 
-            {comments?.map((c: Comment) => {
+            {comments?.map((c) => {
               const isOwn = c.user_id === user?.id;
               const displayName = c.profiles?.name ?? "Member";
 
