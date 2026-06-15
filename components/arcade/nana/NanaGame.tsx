@@ -1,7 +1,7 @@
 // components/arcade/nana/NanaGame.tsx
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import NanaRoomLobby from "./NanaRoomLobby";
 import NanaCenterGrid from "./NanaCenterGrid";
@@ -39,6 +39,9 @@ export default function NanaGame({ onExit }: Props) {
   const [profileName, setProfileName] = useState("Guest");
   const [gameState, setGameState] = useState<NanaGameState | null>(null);
 
+  // ── Fix: stable guest ID across renders ──────────────────────────────────
+  const guestIdRef = useRef(`guest_${Date.now().toString()}`);
+
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
   // Fetch profile name
@@ -63,7 +66,7 @@ export default function NanaGame({ onExit }: Props) {
   // ── Realtime ──────────────────────────────────────────────────────────────
   const { connected, broadcastGameState, broadcastFlip } = useRealtimeNana({
     roomId: roomId ?? "none",
-    userId: user?.id ?? `guest_${Date.now().toString()}`,
+    userId: user?.id ?? guestIdRef.current,
     userName: profileName,
     playerIndex: myPlayerIndex,
     onGameStateUpdate: (state) => setGameState(state),
