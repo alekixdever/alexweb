@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
 import CommunityHub from "./CommunityHub";
-import { LayoutList, LayoutGrid, CalendarDays, Users, Search, X } from "lucide-react";
+import {
+  LayoutList,
+  LayoutGrid,
+  CalendarDays,
+  Users,
+  Search,
+  X,
+} from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 interface Props {
   selectedLocation: string;
@@ -70,50 +78,54 @@ export default function MainContent({
           </p>
         </div>
 
-        {/* Layout toggle — desktop only, events tab only */}
-        {activeTab === "events" && (
-          <div
-            className="hidden lg:flex"
-            style={{
-              gap: 2,
-              padding: 3,
-              background: "var(--bg-glass)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-              display: "flex",
-            }}
-          >
-            {([1, 3] as const).map((col) => (
-              <button
-                key={col}
-                onClick={() => setColumnLayout(col)}
-                title={col === 1 ? "Single column" : "Three columns"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  background:
-                    columnLayout === col ? "var(--accent)" : "transparent",
-                  color: columnLayout === col ? "#fff" : "var(--fg-muted)",
-                  transition: "all 0.2s",
-                }}
-              >
-                {col === 1 ? (
-                  <LayoutList size={13} />
-                ) : (
-                  <LayoutGrid size={13} />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* Notification Bell + Layout toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <NotificationBell />
 
+          {/* Layout toggle — desktop only, events tab only */}
+          {activeTab === "events" && (
+            <div
+              className="hidden lg:flex"
+              style={{
+                gap: 2,
+                padding: 3,
+                background: "var(--bg-glass)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                display: "flex",
+              }}
+            >
+              {([1, 3] as const).map((col) => (
+                <button
+                  key={col}
+                  onClick={() => setColumnLayout(col)}
+                  title={col === 1 ? "Single column" : "Three columns"}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    border: "none",
+                    cursor: "pointer",
+                    background:
+                      columnLayout === col ? "var(--accent)" : "transparent",
+                    color: columnLayout === col ? "#fff" : "var(--fg-muted)",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {col === 1 ? (
+                    <LayoutList size={13} />
+                  ) : (
+                    <LayoutGrid size={13} />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
       {/* [MAX] Search bar — events tab only, Sprint 3 */}
       {activeTab === "events" && (
         <div
@@ -152,8 +164,12 @@ export default function MainContent({
               boxSizing: "border-box",
               transition: "border-color 0.15s",
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-hover)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "var(--border)";
+            }}
           />
           {searchQuery && (
             <button
