@@ -93,7 +93,9 @@ export default function PostComposer({ onPost }: PostComposerProps) {
         image_url: postImageUrl,
         event_id: taggedEvent?.id ?? null,
       })
-      .select("*, profiles(name, avatar_url), events(title, title_ja)")
+      .select(
+        "*, profiles!posts_user_id_fkey(name, avatar_url), events!posts_event_id_fkey(title, title_ja)",
+      )
       .single();
 
     if (err || !data) {
@@ -244,8 +246,12 @@ export default function PostComposer({ onPost }: PostComposerProps) {
               boxSizing: "border-box",
               transition: "border-color 0.15s",
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-hover)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "var(--border)";
+            }}
           />
 
           {error && (
@@ -279,10 +285,14 @@ export default function PostComposer({ onPost }: PostComposerProps) {
                   alignItems: "center",
                   gap: 5,
                   fontSize: 11,
-                  color: showEventPicker ? "var(--accent-bright)" : "var(--fg-muted)",
+                  color: showEventPicker
+                    ? "var(--accent-bright)"
+                    : "var(--fg-muted)",
                   background: showEventPicker ? "rgba(139,92,246,0.1)" : "none",
                   border: "1px solid",
-                  borderColor: showEventPicker ? "var(--accent)" : "var(--border)",
+                  borderColor: showEventPicker
+                    ? "var(--accent)"
+                    : "var(--border)",
                   borderRadius: 6,
                   padding: "5px 10px",
                   cursor: "pointer",
@@ -311,11 +321,23 @@ export default function PostComposer({ onPost }: PostComposerProps) {
                   }}
                 >
                   {eventsLoading ? (
-                    <p style={{ fontSize: 12, color: "var(--fg-muted)", padding: "12px 16px" }}>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "var(--fg-muted)",
+                        padding: "12px 16px",
+                      }}
+                    >
                       Loading… / 読み込み中…
                     </p>
                   ) : events.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "var(--fg-muted)", padding: "12px 16px" }}>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "var(--fg-muted)",
+                        padding: "12px 16px",
+                      }}
+                    >
                       No events found / イベントがありません
                     </p>
                   ) : (
@@ -332,13 +354,25 @@ export default function PostComposer({ onPost }: PostComposerProps) {
                           borderBottom: "1px solid var(--border)",
                           transition: "background 0.1s",
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = "var(--bg-glass)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "transparent")
+                        }
                       >
-                        <p style={{ fontSize: 12, color: "var(--fg-primary)", fontWeight: 500 }}>
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: "var(--fg-primary)",
+                            fontWeight: 500,
+                          }}
+                        >
                           {ev.title}
                         </p>
-                        <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>{ev.title_ja}</p>
+                        <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                          {ev.title_ja}
+                        </p>
                       </div>
                     ))
                   )}
@@ -359,7 +393,11 @@ export default function PostComposer({ onPost }: PostComposerProps) {
                 padding: "7px 16px",
                 borderRadius: "var(--radius-sm)",
                 opacity: posting || !content.trim() ? 0.5 : 1,
-                cursor: posting ? "wait" : !content.trim() ? "default" : "pointer",
+                cursor: posting
+                  ? "wait"
+                  : !content.trim()
+                    ? "default"
+                    : "pointer",
               }}
             >
               <Send size={12} />
