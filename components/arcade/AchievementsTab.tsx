@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ACHIEVEMENT_META } from "@/lib/arcade/achievements";
 import type { AchievementKey } from "@/types/arcade";
 
+// 改為
 interface UserAchievement {
   user_id: string;
   achievement_key: AchievementKey;
@@ -12,7 +13,7 @@ interface UserAchievement {
   profiles: {
     display_name: string;
     avatar_url: string | null;
-  };
+  }[]; // ← 陣列
 }
 
 // i18n labels
@@ -53,7 +54,8 @@ export default function AchievementsTab({ lang = "en" }: { lang?: Lang }) {
       if (error) {
         console.error("[Eric][AchievementsTab] fetch error:", error.message);
       } else {
-        setItems((data as UserAchievement[]) ?? []);
+        // 改為
+        setItems((data as unknown as UserAchievement[]) ?? []);
       }
       setLoading(false);
     }
@@ -90,7 +92,7 @@ export default function AchievementsTab({ lang = "en" }: { lang?: Lang }) {
               </div>
 
               <div className="achievement-user">
-                {item.profiles?.avatar_url && (
+                {item.profiles?.[0]?.avatar_url && (
                   <img
                     src={item.profiles.avatar_url}
                     alt={item.profiles.display_name}
@@ -98,7 +100,7 @@ export default function AchievementsTab({ lang = "en" }: { lang?: Lang }) {
                   />
                 )}
                 <span className="achievement-username">
-                  {item.profiles?.display_name ?? "—"}
+                  {item.profiles?.[0]?.display_name ?? "—"}
                 </span>
               </div>
 
