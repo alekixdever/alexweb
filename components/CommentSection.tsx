@@ -8,21 +8,10 @@
 // Integrated by: Max → EventCard.tsx
 
 import { useState, useRef, useEffect } from "react";
-import { useRealtimeComments } from "@/hooks/useRealtimeComments";
+import { useRealtimeComments, Comment } from "@/hooks/useRealtimeComments";
 import { useApp } from "@/context/AppContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Comment {
-  id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  profiles?: {
-    name: string;
-    avatar_url: string | null;
-  } | null;
-}
 
 interface CommentSectionProps {
   eventId: string;
