@@ -19,7 +19,7 @@ const LABELS = {
   title: { en: "Achievements", ja: "実績" },
   subtitle: { en: "Recent unlocks", ja: "最近の解除" },
   empty: { en: "No achievements yet", ja: "まだ実績はありません" },
-  loading: { en: "Loading…", ja: "読み込み中…" },
+  loading: { en: "Loading…", ja: "読み込み中..." },
 };
 
 type Lang = "en" | "ja";
