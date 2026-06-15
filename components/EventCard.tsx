@@ -29,6 +29,8 @@ interface DBEvent {
     name_ja: string;
     color: string;
   } | null;
+  capacity: number | null;
+  capacity_enabled: boolean;
 }
 
 interface DBLocation {
@@ -98,6 +100,11 @@ export default function EventCard({
       });
   };
 
+  const isFull =
+    event.capacity_enabled &&
+    event.capacity !== null &&
+    count >= event.capacity;
+
   const dateObj = new Date(event.date);
   const dateStr = dateObj.toLocaleDateString("en-US", {
     weekday: "short",
@@ -115,6 +122,7 @@ export default function EventCard({
     locationColorBg ?? location?.color_bg ?? "rgba(244,114,182,0.12)";
 
   const joinLabel = () => {
+    if (isFull && !joined) return "Full / 満員";
     if (!isLoggedIn) return "🔒 Login to Join / ログインして参加";
     if (checking) return "...";
     if (joined) return "✕ Leave Event / 参加取消";
@@ -495,12 +503,20 @@ export default function EventCard({
           <span
             style={{ color: isLoggedIn ? "var(--green)" : "var(--fg-muted)" }}
           >
-            {count} participants / 参加者
-            {!isLoggedIn && (
-              <span style={{ color: "var(--fg-muted)", fontSize: 10 }}>
-                {" "}
-                🔒
+            {event.capacity_enabled && event.capacity ? (
+              <span style={{ color: isFull ? "var(--red)" : "var(--fg-muted)" }}>
+                {count} / {event.capacity} participants / 参加者
               </span>
+            ) : (
+              <>
+                {count} participants / 参加者
+                {!isLoggedIn && (
+                  <span style={{ color: "var(--fg-muted)", fontSize: 10 }}>
+                    {" "}
+                    🔒
+                  </span>
+                )}
+              </>
             )}
           </span>
         </button>
@@ -540,30 +556,34 @@ export default function EventCard({
         )}
 
         <button
-          onClick={joined ? handleLeave : handleJoin}
-          disabled={checking}
+          onClick={joined ? handleLeave : isFull ? undefined : handleJoin}
+          disabled={checking || (isFull && !joined)}
           style={{
             width: "100%",
             padding: compact ? "7px" : "10px",
             borderRadius: "var(--radius-sm)",
             border: "none",
-            cursor: checking ? "wait" : "pointer",
+            cursor: checking ? "wait" : isFull && !joined ? "not-allowed" : "pointer",
             fontWeight: 600,
             fontSize: compact ? 12 : 13,
             transition: "all 0.2s ease",
             background: joined
               ? "rgba(248,113,113,0.1)"
-              : checking
+              : isFull
                 ? "var(--bg-glass)"
-                : "linear-gradient(135deg, var(--accent), var(--accent2))",
+                : checking
+                  ? "var(--bg-glass)"
+                  : "linear-gradient(135deg, var(--accent), var(--accent2))",
             color: joined
               ? "var(--red)"
-              : checking
+              : isFull
                 ? "var(--fg-muted)"
-                : "#fff",
+                : checking
+                  ? "var(--fg-muted)"
+                  : "#fff",
             boxShadow:
-              joined || checking ? "none" : "0 4px 16px var(--accent-glow)",
-            opacity: checking ? 0.7 : 1,
+              joined || checking || isFull ? "none" : "0 4px 16px var(--accent-glow)",
+            opacity: checking || (isFull && !joined) ? 0.5 : 1,
           }}
         >
           {joinLabel()}

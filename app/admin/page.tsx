@@ -168,6 +168,8 @@ function EventsSection() {
     image_url: "",
     tags: "",
     tags_ja: "",
+    capacity_enabled: false,
+    capacity: null as number | null,
   });
 
   const load = async () => {
@@ -198,9 +200,9 @@ function EventsSection() {
       image_url: "",
       tags: "",
       tags_ja: "",
+      capacity_enabled: false,
+      capacity: null,
     });
-    setEditing(null);
-    setAdding(false);
   };
 
   const save = async () => {
@@ -219,6 +221,8 @@ function EventsSection() {
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
       tags_ja: form.tags_ja ? form.tags_ja.split(",").map((t) => t.trim()) : [],
       creator_id: user?.id,
+      capacity_enabled: form.capacity_enabled,
+      capacity: form.capacity_enabled ? form.capacity : null,
     };
 
     if (editing) {
@@ -254,6 +258,8 @@ function EventsSection() {
       image_url: evt.image_url ?? "",
       tags: (evt.tags ?? []).join(", "),
       tags_ja: (evt.tags_ja ?? []).join(", "),
+      capacity_enabled: evt.capacity_enabled ?? false,
+      capacity: evt.capacity ?? null,
     });
     setEditing(evt.id);
     setAdding(true);
@@ -551,6 +557,35 @@ function EventsSection() {
                 placeholder="写真, 夜間, 屋外"
               />
             </div>
+          </div>
+
+          {/* Capacity */}
+          <div>
+            <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={form.capacity_enabled}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, capacity_enabled: e.target.checked }))
+                }
+              />
+              Enable capacity limit / 人数制限を有効にする
+            </label>
+            {form.capacity_enabled && (
+              <input
+                type="number"
+                min={1}
+                style={{ ...inputStyle, marginTop: 8, width: 200 }}
+                value={form.capacity ?? ""}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    capacity: e.target.value ? parseInt(e.target.value) : null,
+                  }))
+                }
+                placeholder="Max participants / 最大参加者数"
+              />
+            )}
           </div>
 
           {/* Buttons */}
