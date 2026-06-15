@@ -89,7 +89,7 @@ function Avatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CommentSection({ eventId, defaultOpen = false }: CommentSectionProps) {
-  const { user, isLoggedIn, setAuthModalOpen, setAuthModalAction } = useApp()
+  const { user, isLoggedIn, openAuthModal } = useApp()
   const { comments, postComment, deleteComment } = useRealtimeComments(eventId, user?.id ?? null)
 
   const [isOpen, setIsOpen] = useState(defaultOpen)
@@ -116,8 +116,7 @@ export default function CommentSection({ eventId, defaultOpen = false }: Comment
 
   async function handlePost() {
     if (!isLoggedIn) {
-      setAuthModalAction("comment")
-      setAuthModalOpen(true)
+      openAuthModal("comment", { type: "COMMENT", eventId })
       return
     }
     const trimmed = draft.trim()
