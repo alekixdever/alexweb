@@ -46,6 +46,7 @@ export default function Feed() {
       .order("created_at", { ascending: false })
       .limit(50);
 
+    console.log("query result:", { data, err });
     if (err) {
       setError("Failed to load feed. / フィードを読み込めませんでした。");
       setLoading(false);
