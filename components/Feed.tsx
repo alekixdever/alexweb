@@ -42,7 +42,9 @@ export default function Feed() {
 
     const { data, error: err } = await supabase
       .from("posts")
-      .select("*, profiles(name, avatar_url), events(title, title_ja)")
+      .select(
+        "*, profiles!posts_user_id_fkey(name, avatar_url), events(title, title_ja)",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
 
