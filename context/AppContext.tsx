@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useEffect,
-  useSyncExternalStore,
   ReactNode,
 } from "react";
 import { User } from "@supabase/supabase-js";
@@ -54,23 +53,12 @@ function getAutoTheme(): Theme {
 }
 
 function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return getAutoTheme();
+  if (typeof window === "undefined") return "dark";
   return (localStorage.getItem("theme") as Theme) ?? getAutoTheme();
-}
-
-function subscribeToTheme(cb: () => void) {
-  window.addEventListener("storage", cb);
-  return () => window.removeEventListener("storage", cb);
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
-
-  const storedTheme = useSyncExternalStore(
-    subscribeToTheme,
-    getStoredTheme,
-    getAutoTheme,
-  );
 
   const [state, setState] = useState<AppState>({
     isLoggedIn: false,
@@ -81,9 +69,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingAction: null,
     leftDrawerOpen: false,
     rightDrawerOpen: false,
-    theme: getAutoTheme(),
+    theme: "dark", // server-safe default
     columnLayout: 1,
   });
+
+  // Apply theme from localStorage on mount (client only)
+  useEffect(() => {
+    const saved = getStoredTheme();
+    document.documentElement.setAttribute("data-theme", saved);
+    setState((prev) => ({ ...prev, theme: saved }));
+  }, []);
 
   useEffect(() => {
     const fetchSessionAndRole = async () => {
@@ -155,22 +150,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Apply theme to <html> + persist
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", storedTheme);
-    localStorage.setItem("theme", storedTheme);
-    setState((prev) => ({ ...prev, theme: storedTheme }));
-  }, [storedTheme]);
-
-  // Auto theme check every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const autoTheme = getAutoTheme();
-      localStorage.setItem("theme", autoTheme);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
   const login = () => setState((prev) => ({ ...prev, authModalOpen: false }));
 
   const logout = async () => {
@@ -208,6 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const next = state.theme === "dark" ? "light" : "dark";
     localStorage.setItem("theme", next);
+    document.documentElement.setAttribute("data-theme", next);
     setState((prev) => ({ ...prev, theme: next }));
   };
 
