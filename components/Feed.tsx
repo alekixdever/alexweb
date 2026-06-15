@@ -60,7 +60,9 @@ export default function Feed() {
         .select("post_id")
         .eq("user_id", user.id)
         .in("post_id", ids);
-      likedIds = new Set((likesData ?? []).map((l: { post_id: string }) => l.post_id));
+      likedIds = new Set(
+        (likesData ?? []).map((l: { post_id: string }) => l.post_id),
+      );
     }
 
     const resolved: Post[] = (data ?? []).map((p) => ({
@@ -104,7 +106,10 @@ export default function Feed() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}
+    >
+      <p style={{ color: "red" }}>FEED MOUNTED</p>
       {/* Composer */}
       <PostComposer onPost={handleNewPost} />
 
@@ -120,7 +125,9 @@ export default function Feed() {
         <p className="label-xs">
           Community Feed / コミュニティフィード
           {!loading && (
-            <span style={{ marginLeft: 8, fontWeight: 400, textTransform: "none" }}>
+            <span
+              style={{ marginLeft: 8, fontWeight: 400, textTransform: "none" }}
+            >
               ({posts.length} post{posts.length !== 1 ? "s" : ""})
             </span>
           )}
@@ -142,8 +149,14 @@ export default function Feed() {
             borderRadius: 6,
             transition: "color 0.15s",
           }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--accent-bright)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)")}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color =
+              "var(--accent-bright)")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color =
+              "var(--fg-muted)")
+          }
         >
           <RefreshCw
             size={12}
@@ -219,19 +232,22 @@ export default function Feed() {
         >
           <span style={{ fontSize: 32, opacity: 0.4 }}>📢</span>
           <p>No posts yet. Be the first!</p>
-          <p style={{ fontSize: 11 }}>まだ投稿はありません。最初に投稿しましょう！</p>
+          <p style={{ fontSize: 11 }}>
+            まだ投稿はありません。最初に投稿しましょう！
+          </p>
         </div>
       )}
 
       {/* Posts list */}
-      {!loading && posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onDelete={handleDelete}
-          onLikeToggle={handleLikeToggle}
-        />
-      ))}
+      {!loading &&
+        posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onDelete={handleDelete}
+            onLikeToggle={handleLikeToggle}
+          />
+        ))}
     </div>
   );
 }
