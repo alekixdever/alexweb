@@ -21,6 +21,8 @@ interface DBEvent {
   tags: string[];
   tags_ja: string[];
   participant_count: number;
+  capacity: number | null;
+  capacity_enabled: boolean | null;
 }
 
 interface DBLocation {
@@ -106,13 +108,14 @@ export default function EventList({
   // [MAX] Client-side search filter — title / title_ja / description / tags
   const q = searchQuery.trim().toLowerCase();
   const filteredEvents = q
-    ? events.filter((e) =>
-        e.title.toLowerCase().includes(q) ||
-        e.title_ja.toLowerCase().includes(q) ||
-        e.description?.toLowerCase().includes(q) ||
-        e.description_ja?.toLowerCase().includes(q) ||
-        (e.tags ?? []).some((t) => t.toLowerCase().includes(q)) ||
-        (e.tags_ja ?? []).some((t) => t.toLowerCase().includes(q))
+    ? events.filter(
+        (e) =>
+          e.title.toLowerCase().includes(q) ||
+          e.title_ja.toLowerCase().includes(q) ||
+          e.description?.toLowerCase().includes(q) ||
+          e.description_ja?.toLowerCase().includes(q) ||
+          (e.tags ?? []).some((t) => t.toLowerCase().includes(q)) ||
+          (e.tags_ja ?? []).some((t) => t.toLowerCase().includes(q)),
       )
     : events;
 
@@ -139,11 +142,13 @@ export default function EventList({
 
   if (filteredEvents.length === 0) {
     return (
-      <EmptyState message={
-        q
-          ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
-          : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
-      } />
+      <EmptyState
+        message={
+          q
+            ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
+            : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+        }
+      />
     );
   }
 
@@ -158,11 +163,13 @@ export default function EventList({
 
     if (grouped.length === 0) {
       return (
-        <EmptyState message={
-          q
-            ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
-            : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
-        } />
+        <EmptyState
+          message={
+            q
+              ? `No results for "${searchQuery}" / 「${searchQuery}」の結果はありません`
+              : "Try selecting a different date or venue. / 他の日付や会場をお試しください。"
+          }
+        />
       );
     }
 
