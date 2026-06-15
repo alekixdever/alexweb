@@ -4,9 +4,20 @@
 // Phase 5 — Community tab skeleton
 // Tabs: Feed | Arcade | Ranking | Discussion | Achievements
 // Mobile: icon only | Desktop: icon + label
+//
+// [JANE] 2026-06-15 — Added RankingTab (reads arcade_rankings via Supabase)
+// ⚠️ arcade_rankings table owned by [ERIC] — read-only access here
 import ArcadeLobby from "./arcade/ArcadeLobby";
-import { useState } from "react";
-import { Rss, Gamepad2, Trophy, MessageSquare, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Rss,
+  Gamepad2,
+  Trophy,
+  MessageSquare,
+  Star,
+  Medal,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type CommunityTab =
@@ -56,6 +67,301 @@ const TABS: TabConfig[] = [
     label_ja: "実績",
   },
 ];
+
+// ── Types: Ranking ─────────────────────────────────────────────────────────
+interface RankingRow {
+  user_id: string;
+  game_id: string;
+  best_score: number;
+  accuracy: number | null;
+  updated_at: string;
+  profiles?: { name: string; avatar_url?: string | null };
+}
+
+type GameFilter = "all" | "stroop" | "nana";
+
+// ── RankingTab ─────────────────────────────────────────────────────────────
+// [JANE] Reads arcade_rankings (owned by Eric) — read-only, no writes here
+function RankingTab() {
+  const [rows, setRows] = useState<RankingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<GameFilter>("all");
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const supabase = createClient();
+      const query = supabase
+        .from("arcade_rankings")
+        .select("*, profiles(name, avatar_url)")
+        .order("best_score", { ascending: false })
+        .limit(20);
+
+      if (filter !== "all") query.eq("game_id", filter);
+
+      const { data, error } = await query;
+      if (!error && data) setRows(data as RankingRow[]);
+      setLoading(false);
+    }
+    load();
+  }, [filter]);
+
+  const GAME_LABELS: Record<string, string> = {
+    stroop: "Stroop",
+    nana: "Nana",
+  };
+
+  const MEDAL_COLORS = ["var(--yellow)", "var(--fg-secondary)", "#cd7f32"];
+
+  return (
+    <div
+      className="float-card"
+      style={{ padding: 20, borderRadius: "var(--radius)" }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
+        <div>
+          <p className="label-xs">Ranking / ランキング</p>
+          <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
+            Top scores across all games / 全ゲームのトップスコア
+          </p>
+        </div>
+
+        {/* Game filter pills */}
+        <div style={{ display: "flex", gap: 4 }}>
+          {(["all", "stroop", "nana"] as GameFilter[]).map((g) => (
+            <button
+              key={g}
+              onClick={() => setFilter(g)}
+              style={{
+                fontSize: 11,
+                fontWeight: filter === g ? 600 : 400,
+                padding: "4px 10px",
+                borderRadius: 99,
+                border: "1px solid",
+                borderColor: filter === g ? "var(--accent)" : "var(--border)",
+                background:
+                  filter === g ? "rgba(139,92,246,0.12)" : "transparent",
+                color:
+                  filter === g ? "var(--accent-bright)" : "var(--fg-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {g === "all" ? "All / 全て" : GAME_LABELS[g]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "32px 0",
+            color: "var(--fg-muted)",
+            fontSize: 13,
+          }}
+        >
+          Loading… / 読み込み中…
+        </div>
+      ) : rows.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px 0",
+            color: "var(--fg-muted)",
+            fontSize: 13,
+          }}
+        >
+          <Trophy size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p>
+            No scores yet. Play a game! /
+            まだスコアはありません。ゲームを遊ぼう！
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* Column headers */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "32px 1fr 80px 64px 64px",
+              gap: 8,
+              padding: "0 8px 6px",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            {[
+              "#",
+              "Player / プレイヤー",
+              "Game / ゲーム",
+              "Score / スコア",
+              "Acc / 正確",
+            ].map((h) => (
+              <span
+                key={h}
+                style={{
+                  fontSize: 10,
+                  color: "var(--fg-muted)",
+                  fontWeight: 600,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+
+          {rows.map((row, i) => {
+            const name = row.profiles?.name ?? "Member";
+            const initials = name
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            const medalColor = MEDAL_COLORS[i] ?? null;
+
+            return (
+              <div
+                key={`${row.user_id}-${row.game_id}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "32px 1fr 80px 64px 64px",
+                  gap: 8,
+                  alignItems: "center",
+                  padding: "8px",
+                  borderRadius: "var(--radius-sm)",
+                  background: i === 0 ? "rgba(251,191,36,0.06)" : "transparent",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    "var(--bg-glass)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    i === 0 ? "rgba(251,191,36,0.06)" : "transparent";
+                }}
+              >
+                {/* Rank */}
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: medalColor ?? "var(--fg-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {i < 3 ? <Medal size={14} color={medalColor!} /> : i + 1}
+                </span>
+
+                {/* Player */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    minWidth: 0,
+                  }}
+                >
+                  {row.profiles?.avatar_url ? (
+                    <img
+                      src={row.profiles.avatar_url}
+                      alt={name}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        background: "var(--accent-glow)",
+                        border: "1px solid var(--accent)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: "var(--accent-bright)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials}
+                    </div>
+                  )}
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: "var(--fg-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {name}
+                  </span>
+                </div>
+
+                {/* Game */}
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--fg-muted)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {GAME_LABELS[row.game_id] ?? row.game_id}
+                </span>
+
+                {/* Score */}
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--accent-bright)",
+                    textAlign: "right",
+                  }}
+                >
+                  {row.best_score.toLocaleString()}
+                </span>
+
+                {/* Accuracy */}
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--green)",
+                    textAlign: "right",
+                  }}
+                >
+                  {row.accuracy != null ? `${row.accuracy}%` : "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Placeholder ────────────────────────────────────────────────────────────
 function TabPlaceholder({ tab }: { tab: TabConfig }) {
@@ -152,6 +458,8 @@ export default function CommunityHub() {
       {/* ── Tab Content ─────────────────────────────────────────────────── */}
       {activeTab === "arcade" ? (
         <ArcadeLobby />
+      ) : activeTab === "ranking" ? (
+        <RankingTab />
       ) : (
         <TabPlaceholder tab={currentTab} />
       )}

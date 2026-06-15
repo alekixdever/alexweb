@@ -1,5 +1,6 @@
 "use client";
 
+import AvatarUpload from "@/components/AvatarUpload";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +32,44 @@ interface JoinedEvent {
   locations: { name: string; color: string } | null;
 }
 
+// [ERIC] Arcade types
+interface ArcadeRanking {
+  game_id: string;
+  best_score: number;
+  accuracy: number | null;
+  updated_at: string;
+}
+
+interface Achievement {
+  achievement_key: string;
+  unlocked_at: string;
+}
+
+const ACHIEVEMENT_META: Record<
+  string,
+  { label: string; label_ja: string; icon: string }
+> = {
+  first_game: { label: "First Game", label_ja: "初プレイ", icon: "🎮" },
+  stroop_master: {
+    label: "Stroop Master",
+    label_ja: "ストループ達人",
+    icon: "🧠",
+  },
+  nana_champion: { label: "Nana Champion", label_ja: "ナナ王者", icon: "🃏" },
+  high_accuracy: { label: "High Accuracy", label_ja: "高精度", icon: "🎯" },
+  speed_demon: { label: "Speed Demon", label_ja: "スピード狂", icon: "⚡" },
+  event_joiner: {
+    label: "Event Joiner",
+    label_ja: "イベント参加者",
+    icon: "🎉",
+  },
+  social_butterfly: {
+    label: "Social Butterfly",
+    label_ja: "社交家",
+    icon: "🦋",
+  },
+};
+
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -46,6 +85,10 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // [ERIC] Arcade + Achievements state
+  const [arcadeRankings, setArcadeRankings] = useState<ArcadeRanking[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -78,6 +121,22 @@ export default function ProfilePage() {
         setJoinedEvents((evts ?? []) as unknown as JoinedEvent[]);
       }
 
+      // [ERIC] Arcade rankings
+      const { data: rankings } = await supabase
+        .from("arcade_rankings")
+        .select("game_id, best_score, accuracy, updated_at")
+        .eq("user_id", profileId)
+        .order("best_score", { ascending: false });
+      setArcadeRankings(rankings ?? []);
+
+      // [ERIC] Achievements
+      const { data: achvs } = await supabase
+        .from("achievements")
+        .select("achievement_key, unlocked_at")
+        .eq("user_id", profileId)
+        .order("unlocked_at", { ascending: false });
+      setAchievements(achvs ?? []);
+
       setLoading(false);
     };
     fetchAll();
@@ -106,10 +165,6 @@ export default function ProfilePage() {
     admin: "Admin",
     member: "Member / メンバー",
   };
-
-  const avatarUrl =
-    profile?.avatar_url ??
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name ?? profileId}`;
 
   const joinDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-US", {
@@ -217,33 +272,49 @@ export default function ProfilePage() {
               flexWrap: "wrap",
             }}
           >
-            {/* Avatar */}
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <img
-                src={avatarUrl}
-                alt={profile.name}
+            {/* Avatar / アバター */}
+            {isOwn ? (
+              <AvatarUpload
+                userId={profile.id}
+                currentUrl={profile.avatar_url}
+                displayName={profile.name}
+                size={80}
+                onUploadComplete={(newUrl) =>
+                  setProfile((prev) =>
+                    prev ? { ...prev, avatar_url: newUrl } : prev,
+                  )
+                }
+              />
+            ) : (
+              <div
                 style={{
                   width: 80,
                   height: 80,
                   borderRadius: "50%",
-                  border: "3px solid var(--accent)",
-                  boxShadow: "0 0 20px var(--accent-glow)",
+                  overflow: "hidden",
+                  border: "2px solid var(--border)",
+                  flexShrink: 0,
+                  background: "var(--bg-layer2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 2,
-                  right: 2,
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  background: "var(--green)",
-                  border: "2px solid var(--bg-card)",
-                  boxShadow: "0 0 6px var(--green-glow)",
-                }}
-              />
-            </div>
+              >
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.name ?? "avatar"}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 32 }}>👤</span>
+                )}
+              </div>
+            )}
 
             {/* Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -393,12 +464,17 @@ export default function ProfilePage() {
               },
               {
                 icon: <Trophy size={14} />,
-                value: "—",
-                label: "Arcade Score / ゲームスコア",
+                value:
+                  arcadeRankings.length > 0
+                    ? Math.max(
+                        ...arcadeRankings.map((r) => r.best_score),
+                      ).toLocaleString()
+                    : "—",
+                label: "Best Score / ベストスコア",
               },
               {
                 icon: <Users size={14} />,
-                value: "—",
+                value: achievements.length,
                 label: "Achievements / 実績",
               },
             ].map((stat) => (
@@ -552,7 +628,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* ── Arcade Scores — placeholder for Eric ── */}
+        {/* ── [ERIC] Arcade Scores ── */}
         <div className="float-card" style={{ padding: 20 }}>
           <div
             style={{
@@ -572,32 +648,98 @@ export default function ProfilePage() {
             >
               Arcade / アーケード
             </h2>
+            {arcadeRankings.length > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  padding: "2px 8px",
+                  borderRadius: 99,
+                  background: "rgba(251,191,36,0.12)",
+                  color: "var(--yellow)",
+                  border: "1px solid rgba(251,191,36,0.25)",
+                }}
+              >
+                {arcadeRankings.length} game
+                {arcadeRankings.length > 1 ? "s" : ""}
+              </span>
+            )}
           </div>
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              background: "var(--bg-glass)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
+
+          {arcadeRankings.length === 0 ? (
             <p
               style={{
                 fontSize: 13,
                 color: "var(--fg-muted)",
-                marginBottom: 4,
+                textAlign: "center",
+                padding: "20px 0",
               }}
             >
-              🎮 Arcade scores coming soon
+              No games played yet. / まだゲームをプレイしていません。
             </p>
-            <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-              ゲームスコア機能は開発中です。
-            </p>
-          </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {arcadeRankings.map((r) => (
+                <div
+                  key={r.game_id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 14px",
+                    background: "var(--bg-glass)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-sm)",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "var(--fg-primary)",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {r.game_id === "stroop"
+                        ? "🧠 Stroop"
+                        : r.game_id === "nana"
+                          ? "🃏 Nana"
+                          : r.game_id}
+                    </p>
+                    {r.accuracy != null && (
+                      <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                        Accuracy / 精度: {r.accuracy.toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 800,
+                        color: "var(--yellow)",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {r.best_score.toLocaleString()}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "var(--fg-muted)",
+                        marginTop: 2,
+                      }}
+                    >
+                      Best / ベスト
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* ── Achievements — placeholder ── */}
+        {/* ── [ERIC] Achievements ── */}
         <div className="float-card" style={{ padding: 20 }}>
           <div
             style={{
@@ -617,29 +759,72 @@ export default function ProfilePage() {
             >
               Achievements / 実績
             </h2>
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 99,
+                background: "rgba(139,92,246,0.12)",
+                color: "var(--accent-bright)",
+                border: "1px solid rgba(139,92,246,0.25)",
+              }}
+            >
+              {achievements.length}
+            </span>
           </div>
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              background: "var(--bg-glass)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
+
+          {achievements.length === 0 ? (
             <p
               style={{
                 fontSize: 13,
                 color: "var(--fg-muted)",
-                marginBottom: 4,
+                textAlign: "center",
+                padding: "20px 0",
               }}
             >
-              ⭐ Achievements coming soon
+              No achievements yet. / まだ実績がありません。
             </p>
-            <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-              実績機能は開発中です。
-            </p>
-          </div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {achievements.map((a) => {
+                const meta = ACHIEVEMENT_META[a.achievement_key] ?? {
+                  label: a.achievement_key,
+                  label_ja: a.achievement_key,
+                  icon: "🏅",
+                };
+                return (
+                  <div
+                    key={a.achievement_key}
+                    title={`Unlocked: ${new Date(a.unlocked_at).toLocaleDateString()}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      background: "var(--accent-glow)",
+                      border: "1px solid var(--border-hover)",
+                      cursor: "default",
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{meta.icon}</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--accent-bright)",
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>
+                      / {meta.label_ja}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Community Posts — placeholder ── */}

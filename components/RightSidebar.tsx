@@ -1,21 +1,49 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { contactList } from "@/data/users";
 import { LogIn, LogOut } from "lucide-react";
-import AvatarUpload from "@/components/AvatarUpload";
 import { useRouter } from "next/navigation";
 import { usePresence } from "@/hooks/usePresence";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+
+interface Contact {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+}
 
 export default function RightSidebar() {
   const { isLoggedIn, openAuthModal, logout, user } = useApp();
   const router = useRouter();
-
-  // ── Presence — use shared hook, do NOT duplicate channel logic ────────────
   const { isOnline } = usePresence(user?.id ?? null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const supabase = createClient();
 
   const displayName =
     user?.user_metadata?.name || user?.email?.split("@")[0] || "Member";
+
+  const avatarUrl =
+    user?.user_metadata?.avatar_url ??
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
+
+  // Fetch real contacts — all profiles except self
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchContacts = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, name, avatar_url")
+        .neq("id", user.id)
+        .order("name");
+      setContacts(data ?? []);
+    };
+    fetchContacts();
+  }, [user?.id]);
+
+  const getAvatar = (contact: Contact) =>
+    contact.avatar_url ??
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.name ?? contact.id}`;
 
   if (!isLoggedIn) {
     return (
@@ -114,6 +142,7 @@ export default function RightSidebar() {
         overflowY: "auto",
       }}
     >
+      {/* Profile card */}
       <div className="float-card" style={{ padding: 16, flexShrink: 0 }}>
         <div
           style={{
@@ -124,11 +153,18 @@ export default function RightSidebar() {
           }}
         >
           <div style={{ position: "relative", flexShrink: 0 }}>
-            <AvatarUpload
-              userId={user?.id ?? ""}
-              currentUrl={user?.user_metadata?.avatar_url ?? null}
-              displayName={displayName}
-              size={44}
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              onClick={() => user?.id && router.push(`/profile/${user.id}`)}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "2px solid var(--accent)",
+                boxShadow: "0 0 12px var(--accent-glow)",
+                cursor: "pointer",
+              }}
             />
             <span
               style={{
@@ -141,7 +177,6 @@ export default function RightSidebar() {
                 background: "var(--green)",
                 border: "2px solid var(--bg-card)",
                 boxShadow: "0 0 6px var(--green-glow)",
-                pointerEvents: "none",
               }}
             />
           </div>
@@ -196,67 +231,99 @@ export default function RightSidebar() {
         <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
       </div>
 
+      {/* Contacts card */}
       <div className="float-card" style={{ padding: "14px 0", flex: 1 }}>
         <p className="label-xs" style={{ padding: "0 16px 10px" }}>
-          Contacts / コンタクト
+          Members / メンバー ({contacts.length})
         </p>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {contactList.map((u) => (
-            <div
-              key={u.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "8px 16px",
-                cursor: "pointer",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "var(--bg-glass)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "transparent")
-              }
-            >
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <img
-                  src={u.avatar}
-                  alt={u.name}
+
+        {contacts.length === 0 ? (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--fg-muted)",
+              textAlign: "center",
+              padding: "20px 16px",
+            }}
+          >
+            No other members yet.
+            <br />
+            <span style={{ fontSize: 11 }}>他のメンバーはまだいません。</span>
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {contacts.map((contact) => {
+              const online = isOnline(contact.id);
+              return (
+                <div
+                  key={contact.id}
+                  onClick={() => router.push(`/profile/${contact.id}`)}
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: "50%",
-                    border: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    transition: "background 0.15s",
                   }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: isOnline(u.id)
-                      ? "var(--green)"
-                      : "var(--fg-muted)",
-                    border: "2px solid var(--bg-card)",
-                  }}
-                />
-              </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "var(--fg-secondary)",
-                }}
-              >
-                {u.name}
-              </p>
-            </div>
-          ))}
-        </div>
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "var(--bg-glass)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <img
+                      src={getAvatar(contact)}
+                      alt={contact.name ?? "Member"}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: online ? "var(--green)" : "var(--fg-muted)",
+                        border: "2px solid var(--bg-card)",
+                        boxShadow: online
+                          ? "0 0 6px var(--green-glow)"
+                          : "none",
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: "var(--fg-secondary)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {contact.name ?? "Member"}
+                    </p>
+                    {online && (
+                      <p style={{ fontSize: 10, color: "var(--green)" }}>
+                        ● Online
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </aside>
   );

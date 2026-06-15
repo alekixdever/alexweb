@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+// [MAX] EventCard.tsx
+// Integrated: Jane's CommentSection (Sprint 1)
+// Last updated: 2026-06-15
+
+import { useEffect, useState } from "react";
 import { useRealtimeParticipants } from "@/hooks/useRealtimeParticipants";
 import { useApp } from "@/context/AppContext";
 import { MapPin, Calendar, Users, Tag, MoreHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import CommentSection from "@/components/CommentSection";
 
 interface DBEvent {
   id: string;
@@ -58,6 +63,7 @@ export default function EventCard({
     join: realtimeJoin,
     leave: realtimeLeave,
   } = useRealtimeParticipants(event.id, user?.id ?? null);
+
   useEffect(() => {
     const fetchLocation = async () => {
       const { data } = await supabase
@@ -278,9 +284,15 @@ export default function EventCard({
                   background: "rgba(139,92,246,0.15)",
                   color: "var(--accent-bright)",
                   border: "1px solid rgba(139,92,246,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
                 }}
               >
-                {tag} / {(event.tags_ja ?? [])[i]}
+                <Tag size={8} /> {tag}
+                <span style={{ opacity: 0.6, fontSize: 9 }}>
+                  / {(event.tags_ja ?? [])[i]}
+                </span>
               </span>
             ))}
           </div>
@@ -556,6 +568,9 @@ export default function EventCard({
         >
           {joinLabel()}
         </button>
+
+        {/* [MAX] CommentSection — Jane's component, wired in Sprint 1 */}
+        {!compact && <CommentSection eventId={event.id} />}
       </div>
     </article>
   );
