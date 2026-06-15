@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Menu, Bell, Search, Sun, Moon, User } from "lucide-react";
+import { Menu, Search, Sun, Moon, User } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import InfoModal from "./InfoModal";
 
 export default function Header() {
@@ -218,35 +219,7 @@ export default function Header() {
             {isLight ? <Moon size={15} /> : <Sun size={15} />}
           </button>
 
-          <button
-            style={{
-              width: 34,
-              height: 34,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "var(--bg-glass)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-              cursor: "pointer",
-              color: "var(--fg-secondary)",
-              position: "relative",
-            }}
-          >
-            <Bell size={15} />
-            <span
-              style={{
-                position: "absolute",
-                top: 7,
-                right: 7,
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--accent2)",
-                boxShadow: "0 0 6px var(--accent2-glow)",
-              }}
-            />
-          </button>
+          <NotificationBell />
 
           <button
             onClick={() => setRightDrawer(true)}

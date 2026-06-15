@@ -7,6 +7,7 @@
 //
 // [JANE] 2026-06-15 — Added RankingTab (reads arcade_rankings via Supabase)
 // [JANE] 2026-06-15 — Added DiscussionTab (event list → CommentSection)
+// [JANE] 2026-06-16 — Wired AchievementsTab (Eric's component) into Achievements panel
 // ⚠️ arcade_rankings table owned by [ERIC] — read-only access here
 import ArcadeLobby from "./arcade/ArcadeLobby";
 import CommentSection from "./CommentSection";
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Feed from "./Feed";
+import AchievementsTab from "@/components/arcade/AchievementsTab";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type CommunityTab =
@@ -390,7 +392,6 @@ function DiscussionTab() {
       setLoading(true);
       const supabase = createClient();
 
-      // Load upcoming + recent events, with comment counts
       const { data } = await supabase
         .from("events")
         .select("id, title, title_ja, date, comments(count)")
@@ -491,7 +492,6 @@ function DiscussionTab() {
                   el.style.borderColor = "var(--border)";
                 }}
               >
-                {/* Calendar icon */}
                 <div
                   style={{
                     width: 36,
@@ -508,7 +508,6 @@ function DiscussionTab() {
                   <CalendarDays size={16} color="var(--accent-bright)" />
                 </div>
 
-                {/* Title + date */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     style={{
@@ -528,7 +527,6 @@ function DiscussionTab() {
                   </p>
                 </div>
 
-                {/* Comment count badge */}
                 <div
                   style={{
                     display: "flex",
@@ -556,7 +554,6 @@ function DiscussionTab() {
       className="float-card"
       style={{ padding: 20, borderRadius: "var(--radius)" }}
     >
-      {/* Back + event header */}
       <div style={{ marginBottom: 16 }}>
         <button
           onClick={() => setSelected(null)}
@@ -595,44 +592,7 @@ function DiscussionTab() {
         </p>
       </div>
 
-      {/* CommentSection — defaultOpen since user explicitly navigated here */}
       <CommentSection eventId={selected.id} defaultOpen={true} />
-    </div>
-  );
-}
-
-// ── Placeholder ────────────────────────────────────────────────────────────
-function TabPlaceholder({ tab }: { tab: TabConfig }) {
-  return (
-    <div
-      className="float-card"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-        padding: "48px 24px",
-        minHeight: 240,
-        borderRadius: "var(--radius)",
-        color: "var(--fg-muted)",
-        textAlign: "center",
-      }}
-    >
-      <div style={{ color: "var(--accent)", opacity: 0.5 }}>
-        {/* Larger icon for empty state */}
-        {tab.id === "feed" && <Rss size={40} />}
-        {tab.id === "arcade" && <Gamepad2 size={40} />}
-        {tab.id === "ranking" && <Trophy size={40} />}
-        {tab.id === "discussion" && <MessageSquare size={40} />}
-        {tab.id === "achievements" && <Star size={40} />}
-      </div>
-      <p className="label-xs" style={{ letterSpacing: "0.1em" }}>
-        {tab.label} / {tab.label_ja}
-      </p>
-      <p style={{ fontSize: 13, color: "var(--fg-muted)", maxWidth: 240 }}>
-        Coming soon / 近日公開
-      </p>
     </div>
   );
 }
@@ -640,6 +600,12 @@ function TabPlaceholder({ tab }: { tab: TabConfig }) {
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function CommunityHub() {
   const [activeTab, setActiveTab] = useState<CommunityTab>("feed");
+
+  // lang derived once at component level — passed to AchievementsTab
+  const lang =
+    typeof navigator !== "undefined" && navigator.language.startsWith("ja")
+      ? "ja"
+      : "en";
 
   const currentTab = TABS.find((t) => t.id === activeTab)!;
 
@@ -681,12 +647,9 @@ export default function CommunityHub() {
                 transition: "all 0.15s ease",
               }}
             >
-              {/* Icon always visible */}
               <span style={{ display: "flex", alignItems: "center" }}>
                 {tab.icon}
               </span>
-
-              {/* Label: hidden on mobile, shown on desktop */}
               <span className="hidden lg:inline">{tab.label}</span>
             </button>
           );
@@ -702,9 +665,9 @@ export default function CommunityHub() {
         <RankingTab />
       ) : activeTab === "discussion" ? (
         <DiscussionTab />
-      ) : (
-        <TabPlaceholder tab={currentTab} />
-      )}
+      ) : activeTab === "achievements" ? (
+        <AchievementsTab lang={lang} />
+      ) : null}
     </div>
   );
 }

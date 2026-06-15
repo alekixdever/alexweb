@@ -5,6 +5,39 @@
 
 export type GameId = "nana" | "stroop";
 
+// Achievement Types
+export type AchievementKey =
+  | "first_game"
+  | "stroop_master"
+  | "nana_champion"
+  | "high_accuracy"
+  | "speed_demon"
+  | "event_joiner"
+  | "social_butterfly";
+
+export interface AchievementMeta {
+  key: AchievementKey;
+  label: string; // English
+  labelJa: string; // 日本語
+  description: string;
+  descriptionJa: string;
+  icon: string;
+}
+
+export interface UnlockCondition {
+  gameId?: string;
+  minScore?: number;
+  minAccuracy?: number; // 0–1
+  maxDurationMs?: number; // for speed_demon
+}
+
+export interface UnlockResult {
+  success: boolean;
+  alreadyUnlocked: boolean;
+  achievementKey: AchievementKey;
+  error?: string;
+}
+
 export interface ArcadeGameSession {
   id: string;
   user_id: string;
