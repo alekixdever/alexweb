@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useSyncExternalStore,
   ReactNode,
 } from "react";
 import { User } from "@supabase/supabase-js";
@@ -52,26 +53,36 @@ function getAutoTheme(): Theme {
   return hour >= 6 && hour < 18 ? "light" : "dark";
 }
 
+function getStoredTheme(): Theme {
+  if (typeof window === "undefined") return getAutoTheme();
+  return (localStorage.getItem("theme") as Theme) ?? getAutoTheme();
+}
+
+function subscribeToTheme(cb: () => void) {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
-  const [state, setState] = useState<AppState>(() => {
-    const savedTheme =
-      typeof window !== "undefined"
-        ? (localStorage.getItem("theme") as Theme | null)
-        : null;
-    return {
-      isLoggedIn: false,
-      user: null,
-      userRole: null,
-      authModalOpen: false,
-      authModalAction: "",
-      pendingAction: null,
-      leftDrawerOpen: false,
-      rightDrawerOpen: false,
-      theme: savedTheme ?? getAutoTheme(),
-      columnLayout: 1,
-    };
+  const storedTheme = useSyncExternalStore(
+    subscribeToTheme,
+    getStoredTheme,
+    getAutoTheme,
+  );
+
+  const [state, setState] = useState<AppState>({
+    isLoggedIn: false,
+    user: null,
+    userRole: null,
+    authModalOpen: false,
+    authModalAction: "",
+    pendingAction: null,
+    leftDrawerOpen: false,
+    rightDrawerOpen: false,
+    theme: getAutoTheme(),
+    columnLayout: 1,
   });
 
   useEffect(() => {
@@ -144,18 +155,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Apply theme to <html> + persist
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", state.theme);
-    localStorage.setItem("theme", state.theme);
-  }, [state.theme]);
+    document.documentElement.setAttribute("data-theme", storedTheme);
+    localStorage.setItem("theme", storedTheme);
+    setState((prev) => ({ ...prev, theme: storedTheme }));
+  }, [storedTheme]);
 
+  // Auto theme check every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      setState((prev) => {
-        const autoTheme = getAutoTheme();
-        if (prev.theme !== autoTheme) return { ...prev, theme: autoTheme };
-        return prev;
-      });
+      const autoTheme = getAutoTheme();
+      localStorage.setItem("theme", autoTheme);
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -194,11 +205,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setRightDrawer = (open: boolean) =>
     setState((prev) => ({ ...prev, rightDrawerOpen: open }));
 
-  const toggleTheme = () =>
-    setState((prev) => ({
-      ...prev,
-      theme: prev.theme === "dark" ? "light" : "dark",
-    }));
+  const toggleTheme = () => {
+    const next = state.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("theme", next);
+    setState((prev) => ({ ...prev, theme: next }));
+  };
 
   const setColumnLayout = (col: ColumnLayout) =>
     setState((prev) => ({ ...prev, columnLayout: col }));
