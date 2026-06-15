@@ -16,6 +16,7 @@ export default function Header() {
     toggleTheme,
     userRole,
     user,
+    openAuthModal,
   } = useApp();
   const [infoOpen, setInfoOpen] = useState(false);
   const isLight = theme === "light";
@@ -225,12 +226,14 @@ export default function Header() {
 
           <button
             onClick={() => {
-              if (window.innerWidth < 1024) {
-                setRightDrawer(true);
-              } else if (isLoggedIn && user?.id) {
-                router.push(`/profile/${user.id}`);
+              if (isLoggedIn && user?.id) {
+                if (window.innerWidth < 1024) {
+                  setRightDrawer(true);
+                } else {
+                  router.push(`/profile/${user.id}`);
+                }
               } else {
-                setRightDrawer(true);
+                openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" });
               }
             }}
             style={{

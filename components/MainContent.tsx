@@ -1,17 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import EventList from "./EventList";
 import CommunityHub from "./CommunityHub";
-import {
-  LayoutList,
-  LayoutGrid,
-  CalendarDays,
-  Users,
-  Search,
-  X,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutList, LayoutGrid, CalendarDays, Users } from "lucide-react";
 
 interface Props {
   selectedLocation: string;
@@ -26,11 +19,19 @@ export default function MainContent({
 }: Props) {
   const { columnLayout, setColumnLayout } = useApp();
   const [activeTab, setActiveTab] = useState<"events" | "community">("events");
-  const [searchQuery, setSearchQuery] = useState("");
-
   const isAll = selectedLocation === "all";
   const locationName = selectedLocation === "all" ? "All Venues / 全会場" : "";
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
+  const timeStr = now.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
   const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString(
     "en-US",
     {
@@ -63,17 +64,18 @@ export default function MainContent({
         }}
       >
         <div>
-          <h2
+          <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>{dateLabel}</p>
+          <p
             style={{
-              fontSize: 15,
+              fontSize: 18,
               fontWeight: 700,
-              color: "var(--fg-primary)",
+              color: "var(--accent-bright)",
+              letterSpacing: "0.05em",
+              fontVariantNumeric: "tabular-nums",
+              marginTop: 2,
             }}
           >
-            {isAll ? "All Venues / 全会場" : locationName || selectedLocation}
-          </h2>
-          <p style={{ fontSize: 11, color: "var(--fg-muted)", marginTop: 2 }}>
-            {dateLabel}
+            {timeStr}
           </p>
         </div>
 
@@ -120,74 +122,6 @@ export default function MainContent({
           </div>
         )}
       </div>
-
-      {/* [MAX] Search bar — events tab only, Sprint 3 */}
-      {activeTab === "events" && (
-        <div
-          style={{
-            position: "relative",
-            marginBottom: "var(--gap)",
-            flexShrink: 0,
-          }}
-        >
-          <Search
-            size={13}
-            style={{
-              position: "absolute",
-              left: 11,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: "var(--fg-muted)",
-              pointerEvents: "none",
-            }}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search events… / イベントを検索… (title, tags)"
-            style={{
-              width: "100%",
-              padding: "9px 32px 9px 32px",
-              background: "var(--bg-glass)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-sm)",
-              color: "var(--fg-primary)",
-              fontSize: 13,
-              outline: "none",
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-              transition: "border-color 0.15s",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-hover)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              style={{
-                position: "absolute",
-                right: 8,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--fg-muted)",
-                display: "flex",
-                alignItems: "center",
-                padding: 2,
-              }}
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Main content tabs */}
       <div
@@ -253,7 +187,6 @@ export default function MainContent({
             selectedLocation={selectedLocation}
             selectedDate={selectedDate}
             selectedCategory={selectedCategory}
-            searchQuery={searchQuery}
           />
         ) : (
           <CommunityHub />
