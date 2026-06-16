@@ -11,17 +11,21 @@ import NanaRoomLobby from "./NanaRoomLobby";
 interface NanaGameProps {
   userId: string;
   userName?: string;
+  lang?: "en" | "ja";
   onGameEnd?: (score: number) => void;
+  onExit?: () => void;
 }
 
 export default function NanaGame({
   userId,
   userName = "",
+  lang = "en",
   onGameEnd,
+  onExit,
 }: NanaGameProps) {
   const { setNanaInviteReady, clearNanaInvite } = useApp();
 
-  const [roomId, setRoomId] = useState<string | undefined>();
+  const [showLobby, setShowLobby] = useState(false);
   const [pendingInvitePayload, setPendingInvitePayload] = useState<
     NanaInvitePayload | undefined
   >();
@@ -35,12 +39,10 @@ export default function NanaGame({
     },
   });
 
-  // ── 建立房間，wire-in invite fn → AppContext ──────────────────────────
+  // ── 建立房間後 wire-in invite fn → AppContext ─────────────────────────
   async function handleStartMultiplayer() {
     const room = await createNanaRoom(userId);
     if (!room) return;
-
-    setRoomId(room.id);
 
     const inviteFn = (targetUserId: string) => {
       broadcastNanaInvite(room.id, targetUserId, userId, userName);
@@ -48,13 +50,25 @@ export default function NanaGame({
 
     inviteFnRef.current = inviteFn;
     setNanaInviteReady(room.id, inviteFn);
+    setShowLobby(true);
   }
 
-  // ── 房間關閉時清除 Context ────────────────────────────────────────────
-  function handleRoomClose() {
-    setRoomId(undefined);
+  // ── Lobby 關閉時清除 Context ──────────────────────────────────────────
+  function handleLobbyExit() {
     inviteFnRef.current = undefined;
     clearNanaInvite();
+    setShowLobby(false);
+    setPendingInvitePayload(undefined);
+  }
+
+  // ── 遊戲開始 callback ─────────────────────────────────────────────────
+  function handleRoomReady(
+    roomId: string,
+    playerIndex: number,
+    playerCount: number,
+  ) {
+    // TODO: 進入實際遊戲畫面
+    console.log("[NanaGame] room ready", { roomId, playerIndex, playerCount });
   }
 
   // ── unmount 時清除 ────────────────────────────────────────────────────
@@ -64,26 +78,29 @@ export default function NanaGame({
     };
   }, [clearNanaInvite]);
 
-  // ── 收到邀請 → 顯示 Lobby（autoJoin）────────────────────────────────
+  // ── 收到邀請 → Lobby autoJoin ─────────────────────────────────────────
   if (pendingInvitePayload) {
     return (
       <NanaRoomLobby
-        roomId={pendingInvitePayload.roomId}
         userId={userId}
+        userName={userName}
+        lang={lang}
         pendingInviteRoomId={pendingInvitePayload.roomId}
-        fromUserName={pendingInvitePayload.fromUserName}
-        onClose={() => setPendingInvitePayload(undefined)}
+        onRoomReady={handleRoomReady}
+        onExit={handleLobbyExit}
       />
     );
   }
 
   // ── Host Lobby ────────────────────────────────────────────────────────
-  if (roomId) {
+  if (showLobby) {
     return (
       <NanaRoomLobby
-        roomId={roomId}
         userId={userId}
-        onClose={handleRoomClose}
+        userName={userName}
+        lang={lang}
+        onRoomReady={handleRoomReady}
+        onExit={handleLobbyExit}
       />
     );
   }
@@ -95,6 +112,7 @@ export default function NanaGame({
       <button onClick={handleStartMultiplayer}>
         Multiplayer / マルチプレイ
       </button>
+      {onExit && <button onClick={onExit}>Exit / 退出</button>}
     </div>
   );
 }

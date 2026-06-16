@@ -24,15 +24,6 @@ interface Props {
   pendingInviteRoomId?: string; // ← 新增：接受邀請後自動加入
 }
 
-// components/arcade/nana/NanaRoomLobby.tsx
-interface NanaRoomLobbyProps {
-  roomId: string;
-  userId: string;
-  pendingInviteRoomId?: string;
-  fromUserName?: string; // ← 確認是否已有
-  onClose: () => void;
-}
-
 type LobbyPhase = "menu" | "creating" | "waiting" | "joining" | "join_input";
 
 export default function NanaRoomLobby({
