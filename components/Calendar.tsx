@@ -269,6 +269,31 @@ export default function Calendar({ selectedDate, onSelect }: Props) {
         selectedDate={selectedDate}
         onSelect={onSelect}
       />
+
+      <div style={{ height: 1, background: "var(--border)", margin: "12px 0" }} />
+
+      {(() => {
+        const secondDate = new Date(viewYear, viewMonth + 1, 1);
+        const secondYear = secondDate.getFullYear();
+        const secondMonth = secondDate.getMonth();
+        const secondLabel = secondDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+        });
+        return (
+          <>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-secondary)", textAlign: "center", marginBottom: 10 }}>
+              {secondLabel}
+            </p>
+            <MonthGrid
+              year={secondYear}
+              month={secondMonth}
+              selectedDate={selectedDate}
+              onSelect={onSelect}
+            />
+          </>
+        );
+      })()}
     </div>
   );
 }
