@@ -373,7 +373,15 @@ function ConversationView({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
       {/* Header */}
       <div
         style={{
@@ -655,9 +663,10 @@ export default function DMDrawer({
         style={{
           position: "fixed",
           top: 0,
+          left: 0,
           right: 0,
           bottom: 0,
-          width: "min(360px, 100vw)",
+          width: "100%",
           background: "var(--bg-card)",
           borderLeft: "1px solid var(--border)",
           zIndex: 201,
