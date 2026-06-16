@@ -638,11 +638,6 @@ export default function DMDrawer({
   const { user } = useApp();
   const [selectedContact, setSelectedContact] = useState<Profile | null>(null);
 
-  // Reset on close
-  useEffect(() => {
-    if (!open) setSelectedContact(null);
-  }, [open]);
-
   if (!open) return null;
 
   return (
@@ -654,7 +649,7 @@ export default function DMDrawer({
           position: "fixed",
           inset: 0,
           background: "rgba(0,0,0,0.4)",
-          zIndex: 200,
+          zIndex: 400,
         }}
       />
 
@@ -663,16 +658,17 @@ export default function DMDrawer({
         style={{
           position: "fixed",
           top: 0,
-          left: 0,
           right: 0,
           bottom: 0,
-          width: "100%",
+          width: 360,
+          maxWidth: "100dvw",
           background: "var(--bg-card)",
           borderLeft: "1px solid var(--border)",
-          zIndex: 201,
+          zIndex: 401,
           display: "flex",
           flexDirection: "column",
           boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
+          transform: "translateX(0)",
         }}
       >
         {/* Drawer header */}

@@ -423,7 +423,10 @@ export default function RightSidebar() {
       {user?.id && (
         <DMDrawer
           open={dmOpen}
-          onClose={() => setDmOpen(false)}
+          onClose={() => {
+            setDmOpen(false);
+            setSelectedUserId(null);
+          }}
           initialContactId={selectedUserId}
         />
       )}
