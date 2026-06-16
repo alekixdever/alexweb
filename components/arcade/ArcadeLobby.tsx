@@ -61,8 +61,8 @@ export default function ArcadeLobby() {
     // 第 61 行替換成：
     // 改成：
     // 改成：
-    if (!user) return null;
-    return <NanaGame userId={user.id} onExit={() => setActiveGame(null)} />;
+    // 改成：
+    return <NanaGame onExit={() => setActiveGame(null)} />;
   }
 
   // ── Lobby ─────────────────────────────────────────────────────────────────
