@@ -13,17 +13,6 @@ interface Contact {
   avatar_url: string | null;
 }
 
-// Inject pulse animation
-if (
-  typeof document !== "undefined" &&
-  !document.getElementById("dm-pulse-style")
-) {
-  const style = document.createElement("style");
-  style.id = "dm-pulse-style";
-  style.textContent = `@keyframes dmPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }`;
-  document.head.appendChild(style);
-}
-
 interface RightSidebarProps {
   onOpenDM?: (contactId: string) => void;
 }
@@ -43,6 +32,15 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
   const avatarUrl =
     user?.user_metadata?.avatar_url ??
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
+
+  // Inject pulse animation (client only)
+  useEffect(() => {
+    if (document.getElementById("dm-pulse-style")) return;
+    const style = document.createElement("style");
+    style.id = "dm-pulse-style";
+    style.textContent = `@keyframes dmPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }`;
+    document.head.appendChild(style);
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
