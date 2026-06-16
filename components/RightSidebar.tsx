@@ -15,7 +15,7 @@ interface Contact {
 }
 
 export default function RightSidebar() {
-  const { isLoggedIn, openAuthModal, logout, user } = useApp();
+  const { isLoggedIn, openAuthModal, logout, user, nanaRoomId, nanaInviteContact } = useApp();
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -218,19 +218,21 @@ export default function RightSidebar() {
                 return (
                   <div
                     key={contact.id}
-                    onClick={() => handleContactClick(contact.id)}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
                       padding: "8px 16px",
-                      cursor: "pointer",
                       transition: "background 0.15s",
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <div style={{ position: "relative", flexShrink: 0 }}>
+                    {/* Avatar */}
+                    <div
+                      onClick={() => handleContactClick(contact.id)}
+                      style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}
+                    >
                       <img
                         src={getAvatar(contact)}
                         alt={contact.name ?? "Member"}
@@ -250,7 +252,12 @@ export default function RightSidebar() {
                         }}
                       />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+
+                    {/* Name */}
+                    <div
+                      onClick={() => handleContactClick(contact.id)}
+                      style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+                    >
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {contact.name ?? "Member"}
                       </p>
@@ -258,10 +265,57 @@ export default function RightSidebar() {
                         <p style={{ fontSize: 10, color: "var(--green)" }}>● Online</p>
                       )}
                     </div>
-                    {/* DM hint */}
-                    <span style={{ fontSize: 10, color: "var(--fg-muted)", opacity: 0.6 }}>
-                      💬
-                    </span>
+
+                    {/* Action buttons */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      {/* DM button */}
+                      <button
+                        onClick={() => handleContactClick(contact.id)}
+                        title="Direct Message"
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--fg-muted)",
+                        }}
+                      >
+                        💬
+                      </button>
+
+                      {/* Nana invite button — only when room is active */}
+                      {nanaRoomId && nanaInviteContact && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            nanaInviteContact(contact.id);
+                          }}
+                          title="Invite to Nana / ナナに招待"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            border: "1px solid var(--accent)",
+                            background: "rgba(139,92,246,0.12)",
+                            color: "var(--accent-bright)",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.25)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.12)")}
+                        >
+                          Nana
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

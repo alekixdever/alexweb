@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import { User } from "@supabase/supabase-js";
@@ -43,6 +44,11 @@ interface AppContextType extends AppState {
   setRightDrawer: (open: boolean) => void;
   toggleTheme: () => void;
   setColumnLayout: (col: ColumnLayout) => void;
+  // Nana invite
+  nanaRoomId: string | undefined;
+  nanaInviteContact: ((targetUserId: string) => void) | undefined;
+  setNanaInviteReady: (roomId: string, inviteFn: (targetUserId: string) => void) => void;
+  clearNanaInvite: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -69,9 +75,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingAction: null,
     leftDrawerOpen: false,
     rightDrawerOpen: false,
-    theme: "dark", // server-safe default
+    theme: "dark",
     columnLayout: 1,
   });
+
+  // Nana invite — separate state (functions can't go in plain state object)
+  const [nanaRoomId, setNanaRoomId] = useState<string | undefined>();
+  const [nanaInviteContact, setNanaInviteContact] = useState<
+    ((targetUserId: string) => void) | undefined
+  >();
 
   // Apply theme from localStorage on mount (client only)
   useEffect(() => {
@@ -194,6 +206,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setColumnLayout = (col: ColumnLayout) =>
     setState((prev) => ({ ...prev, columnLayout: col }));
 
+  const setNanaInviteReady = useCallback(
+    (roomId: string, inviteFn: (targetUserId: string) => void) => {
+      setNanaRoomId(roomId);
+      setNanaInviteContact(() => inviteFn);
+    },
+    []
+  );
+
+  const clearNanaInvite = useCallback(() => {
+    setNanaRoomId(undefined);
+    setNanaInviteContact(undefined);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -206,6 +231,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRightDrawer,
         toggleTheme,
         setColumnLayout,
+        nanaRoomId,
+        nanaInviteContact,
+        setNanaInviteReady,
+        clearNanaInvite,
       }}
     >
       {children}
