@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { User } from "@supabase/supabase-js";
@@ -19,6 +20,12 @@ interface PendingAction {
   type: PendingActionType;
   eventId: string;
   payload?: string;
+}
+
+// ── Game Invite ───────────────────────────────────────────────────────────
+export interface ActiveGame {
+  gameId: string;
+  roomId: string;
 }
 
 interface AppState {
@@ -44,14 +51,15 @@ interface AppContextType extends AppState {
   setRightDrawer: (open: boolean) => void;
   toggleTheme: () => void;
   setColumnLayout: (col: ColumnLayout) => void;
-  // Nana invite
-  nanaRoomId: string | undefined;
-  nanaInviteContact: ((targetUserId: string) => void) | undefined;
-  setNanaInviteReady: (
+  // Generic game invite system
+  activeGame: ActiveGame | null;
+  inviteContact: ((targetUserId: string) => void) | undefined;
+  registerGameInvite: (
+    gameId: string,
     roomId: string,
     inviteFn: (targetUserId: string) => void,
   ) => void;
-  clearNanaInvite: () => void;
+  unregisterGameInvite: () => void;
   nanaInviteSoundEnabled: boolean;
   toggleNanaInviteSound: () => void;
 }
@@ -84,11 +92,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     columnLayout: 1,
   });
 
-  // Nana invite — separate state (functions can't go in plain state object)
-  const [nanaRoomId, setNanaRoomId] = useState<string | undefined>();
-  const [nanaInviteContact, setNanaInviteContact] = useState<
+  // Game invite — ref for inviteFn (avoids setState double-wrap bug)
+  const [activeGame, setActiveGame] = useState<ActiveGame | null>(null);
+  const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>(undefined);
+  const [inviteContact, setInviteContact] = useState<
     ((targetUserId: string) => void) | undefined
-  >();
+  >(undefined);
+
   const [nanaInviteSoundEnabled, setNanaInviteSoundEnabled] = useState(true);
 
   // Apply theme from localStorage on mount (client only)
@@ -96,7 +106,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = getStoredTheme();
     document.documentElement.setAttribute("data-theme", saved);
     setState((prev) => ({ ...prev, theme: saved }));
-    // Restore nana sound preference
     const sound = localStorage.getItem("nanaInviteSound");
     if (sound === "false") setNanaInviteSoundEnabled(false);
   }, []);
@@ -215,17 +224,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setColumnLayout = (col: ColumnLayout) =>
     setState((prev) => ({ ...prev, columnLayout: col }));
 
-  const setNanaInviteReady = useCallback(
-    (roomId: string, inviteFn: (targetUserId: string) => void) => {
-      setNanaRoomId(roomId);
-      setNanaInviteContact(() => () => inviteFn); // ✅ 雙層包裹
+  // ── Game invite ───────────────────────────────────────────────────────────
+  const registerGameInvite = useCallback(
+    (gameId: string, roomId: string, inviteFn: (targetUserId: string) => void) => {
+      inviteFnRef.current = inviteFn;
+      setActiveGame({ gameId, roomId });
+      // 用 wrapper 避免 React setState 把 function 當 updater 執行
+      setInviteContact(() => (targetUserId: string) => {
+        inviteFnRef.current?.(targetUserId);
+      });
     },
     [],
   );
 
-  const clearNanaInvite = useCallback(() => {
-    setNanaRoomId(undefined);
-    setNanaInviteContact(undefined);
+  const unregisterGameInvite = useCallback(() => {
+    inviteFnRef.current = undefined;
+    setActiveGame(null);
+    setInviteContact(undefined);
   }, []);
 
   const toggleNanaInviteSound = useCallback(() => {
@@ -248,10 +263,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRightDrawer,
         toggleTheme,
         setColumnLayout,
-        nanaRoomId,
-        nanaInviteContact,
-        setNanaInviteReady,
-        clearNanaInvite,
+        activeGame,
+        inviteContact,
+        registerGameInvite,
+        unregisterGameInvite,
         nanaInviteSoundEnabled,
         toggleNanaInviteSound,
       }}

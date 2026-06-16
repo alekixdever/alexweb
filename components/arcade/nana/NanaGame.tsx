@@ -13,11 +13,11 @@ import NanaInviteToast from "./NanaInviteToast";
 import { useRealtimeNana } from "@/lib/arcade/useRealtimeNana";
 import { useRealtimeNanaInvite } from "@/hooks/useRealtimeNanaInvite";
 import type { NanaInvitePayload } from "@/hooks/useRealtimeNanaInvite";
-import { createNanaRoom } from "@/lib/arcade/nana-rooms";
 import {
   setupGame,
   flipCard,
   getFlippableTargets,
+  commitTurnFail,
 } from "@/lib/arcade/nana-engine";
 import {
   getNanaRoomPlayers,
@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function NanaGame({ onExit }: Props) {
-  const { user, setNanaInviteReady, clearNanaInvite, nanaInviteSoundEnabled } =
+  const { user, registerGameInvite, unregisterGameInvite, nanaInviteSoundEnabled } =
     useApp();
   const lang =
     typeof navigator !== "undefined" && navigator.language.startsWith("ja")
@@ -47,9 +47,6 @@ export default function NanaGame({ onExit }: Props) {
     NanaInvitePayload | undefined
   >(undefined);
   const [acceptedInvite, setAcceptedInvite] = useState(false);
-  const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>(
-    undefined,
-  );
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
@@ -82,7 +79,7 @@ export default function NanaGame({ onExit }: Props) {
     onPlayerJoined: () => {},
   });
 
-  // ── Realtime invite (Jane) ────────────────────────────────────────────────
+  // ── Realtime invite ───────────────────────────────────────────────────────
   const { broadcastNanaInvite } = useRealtimeNanaInvite({
     userId: user?.id,
     onInviteReceived: (payload: NanaInvitePayload) => {
@@ -93,20 +90,19 @@ export default function NanaGame({ onExit }: Props) {
   // ── unmount 時清除 invite context ────────────────────────────────────────
   useEffect(() => {
     return () => {
-      clearNanaInvite();
+      unregisterGameInvite();
     };
-  }, [clearNanaInvite]);
+  }, [unregisterGameInvite]);
 
-  // ── Room created — wire-in invite fn immediately ──────────────────────────
+  // ── Room created — register invite fn immediately ─────────────────────────
   const handleRoomCreated = useCallback(
     (rid: string) => {
       const inviteFn = (targetUserId: string) => {
         broadcastNanaInvite(rid, targetUserId, user?.id ?? "", profileName);
       };
-      inviteFnRef.current = inviteFn;
-      setNanaInviteReady(rid, inviteFn);
+      registerGameInvite("nana", rid, inviteFn);
     },
-    [broadcastNanaInvite, profileName, setNanaInviteReady, user?.id],
+    [broadcastNanaInvite, profileName, registerGameInvite, user?.id],
   );
 
   // ── Room ready — start game ───────────────────────────────────────────────
@@ -136,8 +132,7 @@ export default function NanaGame({ onExit }: Props) {
 
   // ── Lobby exit ────────────────────────────────────────────────────────────
   function handleLobbyExit() {
-    inviteFnRef.current = undefined;
-    clearNanaInvite();
+    unregisterGameInvite();
     setRoomId(null);
     setGameState(null);
     setPendingInvitePayload(undefined);
@@ -146,20 +141,44 @@ export default function NanaGame({ onExit }: Props) {
   }
 
   // ── Flip ──────────────────────────────────────────────────────────────────
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleFlip = useCallback(
     async (target: FlipTarget) => {
       if (!gameState || !isMyTurn) return;
+
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
+
       await broadcastFlip(target);
       const next = flipCard(gameState, target);
       setGameState(next);
       await broadcastGameState(next);
+
+      if (next.currentTurn.phase === "revealing") {
+        revealTimerRef.current = setTimeout(async () => {
+          revealTimerRef.current = null;
+          const committed = commitTurnFail(next);
+          setGameState(committed);
+          await broadcastGameState(committed);
+        }, 3000);
+      }
     },
     [gameState, isMyTurn, broadcastFlip, broadcastGameState],
   );
 
+  // ── 清除 reveal timer on unmount ─────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+    };
+  }, []);
+
   // ── Play again ────────────────────────────────────────────────────────────
   async function handlePlayAgain() {
-    clearNanaInvite();
+    unregisterGameInvite();
     setGameState(null);
     setRoomId(null);
     setPendingInvitePayload(undefined);
@@ -174,6 +193,7 @@ export default function NanaGame({ onExit }: Props) {
         userName={profileName}
         lang={lang}
         pendingInviteRoomId={pendingInvitePayload.roomId}
+        onRoomCreated={handleRoomCreated}
         onRoomReady={handleRoomReady}
         onExit={handleLobbyExit}
       />
@@ -217,12 +237,11 @@ export default function NanaGame({ onExit }: Props) {
           userId={user.id}
           userName={profileName}
           lang={lang}
-          onRoomReady={handleRoomReady}
           onRoomCreated={handleRoomCreated}
+          onRoomReady={handleRoomReady}
           onExit={onExit}
         />
 
-        {/* 收到邀請 Toast（在 Lobby 上層）*/}
         {pendingInvitePayload && (
           <NanaInviteToast
             fromUserName={pendingInvitePayload.fromUserName}
@@ -309,7 +328,6 @@ export default function NanaGame({ onExit }: Props) {
         ))}
       </div>
 
-      {/* 遊戲中收到邀請 Toast */}
       {pendingInvitePayload && (
         <NanaInviteToast
           fromUserName={pendingInvitePayload.fromUserName}

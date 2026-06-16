@@ -14,7 +14,10 @@ interface Contact {
 }
 
 // Inject pulse animation
-if (typeof document !== "undefined" && !document.getElementById("dm-pulse-style")) {
+if (
+  typeof document !== "undefined" &&
+  !document.getElementById("dm-pulse-style")
+) {
   const style = document.createElement("style");
   style.id = "dm-pulse-style";
   style.textContent = `@keyframes dmPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }`;
@@ -26,18 +29,11 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
-  const {
-    isLoggedIn,
-    openAuthModal,
-    logout,
-    user,
-    nanaRoomId,
-    nanaInviteContact,
-  } = useApp();
+  const { isLoggedIn, openAuthModal, logout, user, activeGame, inviteContact } =
+    useApp();
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
   const [contacts, setContacts] = useState<Contact[]>([]);
-
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const supabase = createClient();
 
@@ -48,52 +44,54 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     user?.user_metadata?.avatar_url ??
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
-  // 讀取未讀訊息
-  async function fetchUnread() {
-    if (!user?.id) return;
-    const { data: unread } = await supabase
-      .from("messages")
-      .select("sender_id")
-      .eq("receiver_id", user.id)
-      .eq("read", false);
-    const map: Record<string, number> = {};
-    (unread ?? []).forEach((m: { sender_id: string }) => {
-      map[m.sender_id] = (map[m.sender_id] ?? 0) + 1;
-    });
-    setUnreadMap(map);
-  }
-
   useEffect(() => {
     if (!user?.id) return;
+    const userId = user.id;
 
-    // 載入聯絡人
+    async function fetchUnread() {
+      const { data: unread } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .eq("receiver_id", userId)
+        .eq("read", false);
+      const map: Record<string, number> = {};
+      (unread ?? []).forEach((m: { sender_id: string }) => {
+        map[m.sender_id] = (map[m.sender_id] ?? 0) + 1;
+      });
+      setUnreadMap(map);
+    }
+
     const fetchContacts = async () => {
       const { data } = await supabase
         .from("profiles")
         .select("id, name, avatar_url")
-        .neq("id", user.id)
+        .neq("id", userId)
         .order("name");
       setContacts(data ?? []);
     };
+
     fetchContacts();
     fetchUnread();
 
-    // Realtime 訂閱 messages → 即時更新未讀
     const channel = supabase
-      .channel("sidebar-messages")
+      .channel(`sidebar-messages-${userId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
+          filter: `receiver_id=eq.${userId}`,
         },
-        () => { fetchUnread(); }
+        () => {
+          fetchUnread();
+        },
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   const getAvatar = (contact: Contact) =>
@@ -101,13 +99,18 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.name ?? contact.id}`;
 
   function handleContactClick(contactId: string) {
-    // 清除該聯絡人的未讀點（樂觀更新）
     setUnreadMap((prev) => {
       const next = { ...prev };
       delete next[contactId];
       return next;
     });
     onOpenDM?.(contactId);
+  }
+
+  // Invite button label — extensible for future games
+  function getInviteLabel(gameId: string) {
+    if (gameId === "nana") return "Nana";
+    return gameId.charAt(0).toUpperCase() + gameId.slice(1);
   }
 
   if (!isLoggedIn) {
@@ -409,8 +412,13 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                       }}
                     >
                       {/* DM button + unread dot */}
-                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                        {/* Unread dot — left of button, near name */}
+                      <div
+                        style={{
+                          position: "relative",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
                         {(unreadMap[contact.id] ?? 0) > 0 && (
                           <span
                             style={{
@@ -445,14 +453,14 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                         </button>
                       </div>
 
-                      {/* Nana invite button — only when room is active */}
-                      {nanaRoomId && nanaInviteContact && (
+                      {/* Game invite button — shown for any active game */}
+                      {activeGame && inviteContact && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            nanaInviteContact(contact.id);
+                            inviteContact(contact.id);
                           }}
-                          title="Invite to Nana / ナナに招待"
+                          title={`Invite to ${getInviteLabel(activeGame.gameId)}`}
                           style={{
                             fontSize: 10,
                             fontWeight: 600,
@@ -474,7 +482,7 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                               "rgba(139,92,246,0.12)")
                           }
                         >
-                          Nana
+                          {getInviteLabel(activeGame.gameId)}
                         </button>
                       )}
                     </div>
@@ -485,8 +493,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
           )}
         </div>
       </aside>
-
-
     </>
   );
 }

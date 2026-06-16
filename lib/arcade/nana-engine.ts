@@ -224,7 +224,20 @@ function removeCards(state: NanaGameState, cards: NanaCard[]): NanaGameState {
   return { ...state, centerGrid, players };
 }
 
-function endTurnFail(state: NanaGameState, flips: NanaCard[]): NanaGameState {
+// Step 1: 牌保持翻開，phase 改為 "revealing"，UI 等 3 秒
+export function peekTurnFail(
+  state: NanaGameState,
+  flips: NanaCard[],
+): NanaGameState {
+  return {
+    ...state,
+    currentTurn: { flipsThisTurn: flips, phase: "revealing" },
+  };
+}
+
+// Step 2: 3 秒後由 UI 呼叫 — 蓋回牌並換手
+export function commitTurnFail(state: NanaGameState): NanaGameState {
+  const flips = state.currentTurn.flipsThisTurn;
   const hidden = hideCards(state, flips);
   const record: TurnRecord = {
     playerIndex: state.currentPlayerIndex,
@@ -240,6 +253,10 @@ function endTurnFail(state: NanaGameState, flips: NanaCard[]): NanaGameState {
     currentTurn: { flipsThisTurn: [], phase: "flip1" },
     turnHistory: [...state.turnHistory, record],
   };
+}
+
+function endTurnFail(state: NanaGameState, flips: NanaCard[]): NanaGameState {
+  return peekTurnFail(state, flips);
 }
 
 function collectTrio(state: NanaGameState, flips: NanaCard[]): NanaGameState {
@@ -314,6 +331,9 @@ export function checkWinCondition(player: NanaPlayer): WinResult {
 // ── Selectors (for UI) ────────────────────────────────────────────────────
 
 export function getFlippableTargets(state: NanaGameState): FlipTarget[] {
+  // 失敗展示中（revealing）— 任何人都不能翻牌
+  if (state.currentTurn.phase === "revealing") return [];
+
   const targets: FlipTarget[] = [];
   const alreadyFlippedIds = new Set(
     state.currentTurn.flipsThisTurn.map((c) => c.id),
