@@ -114,7 +114,10 @@ function ContactList({
         .neq("id", currentUserId)
         .order("name", { ascending: true });
 
-      if (!profiles) { setLoading(false); return; }
+      if (!profiles) {
+        setLoading(false);
+        return;
+      }
 
       // Fetch unread counts + last messages for each contact
       const enriched: ContactWithUnread[] = await Promise.all(
@@ -124,7 +127,7 @@ function ContactList({
             .select("content, image_url, read, created_at, sender_id")
             .or(
               `and(sender_id.eq.${currentUserId},receiver_id.eq.${p.id}),` +
-              `and(sender_id.eq.${p.id},receiver_id.eq.${currentUserId})`,
+                `and(sender_id.eq.${p.id},receiver_id.eq.${currentUserId})`,
             )
             .order("created_at", { ascending: false })
             .limit(1);
@@ -169,7 +172,14 @@ function ContactList({
 
   if (loading) {
     return (
-      <div style={{ padding: "32px 0", textAlign: "center", color: "var(--fg-muted)", fontSize: 13 }}>
+      <div
+        style={{
+          padding: "32px 0",
+          textAlign: "center",
+          color: "var(--fg-muted)",
+          fontSize: 13,
+        }}
+      >
         {t("Loading…", "読み込み中…")}
       </div>
     );
@@ -177,7 +187,14 @@ function ContactList({
 
   if (contacts.length === 0) {
     return (
-      <div style={{ padding: "40px 16px", textAlign: "center", color: "var(--fg-muted)", fontSize: 13 }}>
+      <div
+        style={{
+          padding: "40px 16px",
+          textAlign: "center",
+          color: "var(--fg-muted)",
+          fontSize: 13,
+        }}
+      >
         {t("No members found.", "メンバーが見つかりません。")}
       </div>
     );
@@ -202,14 +219,30 @@ function ContactList({
             transition: "background 0.15s",
             width: "100%",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "var(--bg-glass)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "transparent")
+          }
         >
           <Avatar profile={c} size={38} />
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-primary)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--fg-primary)",
+                }}
+              >
                 {c.name}
               </span>
               {c.lastAt && (
@@ -219,34 +252,38 @@ function ContactList({
               )}
             </div>
             {c.lastMessage && (
-              <p style={{
-                fontSize: 11,
-                color: "var(--fg-muted)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                marginTop: 2,
-              }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "var(--fg-muted)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  marginTop: 2,
+                }}
+              >
                 {c.lastMessage}
               </p>
             )}
           </div>
 
           {c.unread > 0 && (
-            <span style={{
-              minWidth: 18,
-              height: 18,
-              borderRadius: 99,
-              background: "var(--accent)",
-              color: "#fff",
-              fontSize: 10,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0 4px",
-              flexShrink: 0,
-            }}>
+            <span
+              style={{
+                minWidth: 18,
+                height: 18,
+                borderRadius: 99,
+                background: "var(--accent)",
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 4px",
+                flexShrink: 0,
+              }}
+            >
               {c.unread > 9 ? "9+" : c.unread}
             </span>
           )}
@@ -317,45 +354,93 @@ function ConversationView({
       .from("post-images")
       .upload(path, file, { upsert: false });
 
-    if (!error) {
-      const { data } = supabase.storage.from("post-images").getPublicUrl(path);
-      setImageUrl(data.publicUrl);
-      setShowImageInput(true);
+    if (error) {
+      console.error("[DMDrawer] image upload failed:", error.message);
+      alert(
+        t(
+          `Image upload failed: ${error.message}`,
+          `画像のアップロードに失敗しました: ${error.message}`,
+        ),
+      );
+      return;
     }
+
+    const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+    setImageUrl(data.publicUrl);
+    setShowImageInput(true);
+    // Reset file input so same file can be re-selected
+    e.target.value = "";
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Header */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 16px",
-        borderBottom: "1px solid var(--border)",
-        flexShrink: 0,
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}
+      >
         <button
           onClick={onBack}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-muted)", display: "flex", padding: 4 }}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--fg-muted)",
+            display: "flex",
+            padding: 4,
+          }}
         >
           <ChevronLeft size={18} />
         </button>
         <Avatar profile={otherUser} size={32} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-primary)" }}>
+        <span
+          style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-primary)" }}
+        >
           {otherUser.name}
         </span>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "12px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {loading ? (
-          <div style={{ textAlign: "center", color: "var(--fg-muted)", fontSize: 13, paddingTop: 32 }}>
+          <div
+            style={{
+              textAlign: "center",
+              color: "var(--fg-muted)",
+              fontSize: 13,
+              paddingTop: 32,
+            }}
+          >
             {t("Loading…", "読み込み中…")}
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ textAlign: "center", color: "var(--fg-muted)", fontSize: 13, paddingTop: 40 }}>
-            {t("No messages yet. Say hi!", "まだメッセージはありません。挨拶しよう！")}
+          <div
+            style={{
+              textAlign: "center",
+              color: "var(--fg-muted)",
+              fontSize: 13,
+              paddingTop: 40,
+            }}
+          >
+            {t(
+              "No messages yet. Say hi!",
+              "まだメッセージはありません。挨拶しよう！",
+            )}
           </div>
         ) : (
           messages.map((msg) => {
@@ -382,16 +467,20 @@ function ConversationView({
                   />
                 )}
                 {msg.content && (
-                  <div style={{
-                    maxWidth: "72%",
-                    padding: "8px 12px",
-                    borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                    background: isMe ? "var(--accent)" : "var(--surface-2)",
-                    color: isMe ? "#fff" : "var(--fg-primary)",
-                    fontSize: 13,
-                    lineHeight: 1.45,
-                    wordBreak: "break-word",
-                  }}>
+                  <div
+                    style={{
+                      maxWidth: "72%",
+                      padding: "8px 12px",
+                      borderRadius: isMe
+                        ? "14px 14px 4px 14px"
+                        : "14px 14px 14px 4px",
+                      background: isMe ? "var(--accent)" : "var(--surface-2)",
+                      color: isMe ? "#fff" : "var(--fg-primary)",
+                      fontSize: 13,
+                      lineHeight: 1.45,
+                      wordBreak: "break-word",
+                    }}
+                  >
                     {msg.content}
                   </div>
                 )}
@@ -399,11 +488,12 @@ function ConversationView({
                   <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>
                     {timeAgo(msg.created_at)}
                   </span>
-                  {isMe && (
-                    msg.read
-                      ? <CheckCheck size={11} color="var(--accent-bright)" />
-                      : <Check size={11} color="var(--fg-muted)" />
-                  )}
+                  {isMe &&
+                    (msg.read ? (
+                      <CheckCheck size={11} color="var(--accent-bright)" />
+                    ) : (
+                      <Check size={11} color="var(--fg-muted)" />
+                    ))}
                 </div>
               </div>
             );
@@ -414,11 +504,35 @@ function ConversationView({
 
       {/* Image URL preview */}
       {showImageInput && imageUrl && (
-        <div style={{ padding: "0 16px 8px", display: "flex", alignItems: "center", gap: 8 }}>
-          <img src={imageUrl} alt="preview" style={{ height: 48, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }} />
+        <div
+          style={{
+            padding: "0 16px 8px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <img
+            src={imageUrl}
+            alt="preview"
+            style={{
+              height: 48,
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border)",
+            }}
+          />
           <button
-            onClick={() => { setImageUrl(""); setShowImageInput(false); }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-muted)", fontSize: 11 }}
+            onClick={() => {
+              setImageUrl("");
+              setShowImageInput(false);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--fg-muted)",
+              fontSize: 11,
+            }}
           >
             {t("Remove", "削除")}
           </button>
@@ -426,14 +540,16 @@ function ConversationView({
       )}
 
       {/* Input */}
-      <div style={{
-        padding: "10px 16px",
-        borderTop: "1px solid var(--border)",
-        display: "flex",
-        gap: 8,
-        alignItems: "flex-end",
-        flexShrink: 0,
-      }}>
+      <div
+        style={{
+          padding: "10px 16px",
+          borderTop: "1px solid var(--border)",
+          display: "flex",
+          gap: 8,
+          alignItems: "flex-end",
+          flexShrink: 0,
+        }}
+      >
         {/* Image upload */}
         <input
           ref={fileInputRef}
@@ -506,7 +622,11 @@ interface DMDrawerProps {
   initialContactId?: string | null; // optional: open directly into a conversation
 }
 
-export default function DMDrawer({ open, onClose, initialContactId }: DMDrawerProps) {
+export default function DMDrawer({
+  open,
+  onClose,
+  initialContactId,
+}: DMDrawerProps) {
   const { user } = useApp();
   const [selectedContact, setSelectedContact] = useState<Profile | null>(null);
 
@@ -548,20 +668,34 @@ export default function DMDrawer({ open, onClose, initialContactId }: DMDrawerPr
         }}
       >
         {/* Drawer header */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 16px",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--fg-primary)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "14px 16px",
+            borderBottom: "1px solid var(--border)",
+            flexShrink: 0,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--fg-primary)",
+            }}
+          >
             {t("Messages", "メッセージ")}
           </p>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-muted)", display: "flex" }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--fg-muted)",
+              display: "flex",
+            }}
           >
             <X size={18} />
           </button>
@@ -569,8 +703,18 @@ export default function DMDrawer({ open, onClose, initialContactId }: DMDrawerPr
 
         {/* Content */}
         {!user ? (
-          <div style={{ padding: "40px 16px", textAlign: "center", color: "var(--fg-muted)", fontSize: 13 }}>
-            {t("Log in to send messages.", "メッセージを送るにはログインしてください。")}
+          <div
+            style={{
+              padding: "40px 16px",
+              textAlign: "center",
+              color: "var(--fg-muted)",
+              fontSize: 13,
+            }}
+          >
+            {t(
+              "Log in to send messages.",
+              "メッセージを送るにはログインしてください。",
+            )}
           </div>
         ) : selectedContact ? (
           <ConversationView
