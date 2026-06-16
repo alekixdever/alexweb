@@ -1,10 +1,11 @@
 // lib/arcade/nana-rooms.ts
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import type { NanaRoom, NanaRoomPlayer } from "@/types/arcade";
 
 export async function createNanaRoom(
   hostUserId: string,
 ): Promise<NanaRoom | null> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("nana_rooms")
     .insert({
@@ -27,6 +28,8 @@ export async function joinNanaRoom(
   userId: string,
   playerIndex: number,
 ): Promise<boolean> {
+  const supabase = createClient();
+
   const { error: joinError } = await supabase.from("nana_room_players").insert({
     room_id: roomId,
     user_id: userId,
@@ -38,7 +41,6 @@ export async function joinNanaRoom(
     return false;
   }
 
-  // ✅ 確認 RPC 參數名：p_room_id
   const { error: rpcError } = await supabase.rpc(
     "increment_nana_room_player_count",
     { p_room_id: roomId },
@@ -55,6 +57,7 @@ export async function joinNanaRoom(
 export async function getNanaRoomPlayers(
   roomId: string,
 ): Promise<NanaRoomPlayer[]> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("nana_room_players")
     .select("*")
