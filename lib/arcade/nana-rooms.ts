@@ -6,9 +6,14 @@ export async function createNanaRoom(
   hostUserId: string,
 ): Promise<NanaRoom | null> {
   const supabase = createClient();
+
+  // 自己生成 uuid，不依賴 DB default
+  const id = crypto.randomUUID();
+
   const { data, error } = await supabase
     .from("nana_rooms")
     .insert({
+      id,
       host_user_id: hostUserId,
       player_count: 1,
       status: "waiting",
