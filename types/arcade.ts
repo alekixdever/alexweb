@@ -133,7 +133,7 @@ export interface NanaPlayer {
   collectedTrios: number[][];
 }
 
-export type NanaTurnPhase = "flip1" | "flip2" | "flip3" | "resolving";
+export type NanaTurnPhase = "flip1" | "flip2" | "flip3" | "revealing";
 export type WinMethod = "three_trios" | "lucky_7" | null;
 
 export interface WinResult {
