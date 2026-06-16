@@ -47,7 +47,10 @@ interface AppContextType extends AppState {
   // Nana invite
   nanaRoomId: string | undefined;
   nanaInviteContact: ((targetUserId: string) => void) | undefined;
-  setNanaInviteReady: (roomId: string, inviteFn: (targetUserId: string) => void) => void;
+  setNanaInviteReady: (
+    roomId: string,
+    inviteFn: (targetUserId: string) => void,
+  ) => void;
   clearNanaInvite: () => void;
   nanaInviteSoundEnabled: boolean;
   toggleNanaInviteSound: () => void;
@@ -215,9 +218,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setNanaInviteReady = useCallback(
     (roomId: string, inviteFn: (targetUserId: string) => void) => {
       setNanaRoomId(roomId);
-      setNanaInviteContact(() => inviteFn);
+      setNanaInviteContact(() => () => inviteFn); // ✅ 雙層包裹
     },
-    []
+    [],
   );
 
   const clearNanaInvite = useCallback(() => {

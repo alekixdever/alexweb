@@ -15,7 +15,14 @@ interface Contact {
 }
 
 export default function RightSidebar() {
-  const { isLoggedIn, openAuthModal, logout, user, nanaRoomId, nanaInviteContact } = useApp();
+  const {
+    isLoggedIn,
+    openAuthModal,
+    logout,
+    user,
+    nanaRoomId,
+    nanaInviteContact,
+  } = useApp();
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -81,7 +88,8 @@ export default function RightSidebar() {
               width: 64,
               height: 64,
               borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--accent), var(--accent2))",
+              background:
+                "linear-gradient(135deg, var(--accent), var(--accent2))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -92,19 +100,43 @@ export default function RightSidebar() {
             👋
           </div>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--fg-primary)", marginBottom: 6 }}>
+            <p
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "var(--fg-primary)",
+                marginBottom: 6,
+              }}
+            >
               Join the Community
             </p>
-            <p style={{ fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.6 }}>
-              Log in to join events, view participants, and connect with members.
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--fg-muted)",
+                lineHeight: 1.6,
+              }}
+            >
+              Log in to join events, view participants, and connect with
+              members.
               <br />
-              <span style={{ fontSize: 11 }}>ログインしてイベントに参加しましょう。</span>
+              <span style={{ fontSize: 11 }}>
+                ログインしてイベントに参加しましょう。
+              </span>
             </p>
           </div>
           <button
-            onClick={() => openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" })}
+            onClick={() =>
+              openAuthModal("Login", { type: "JOIN_EVENT", eventId: "" })
+            }
             className="btn-primary"
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
           >
             <LogIn size={14} /> Log In / ログイン
           </button>
@@ -127,7 +159,14 @@ export default function RightSidebar() {
       >
         {/* Profile card */}
         <div className="float-card" style={{ padding: 16, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
             <div style={{ position: "relative", flexShrink: 0 }}>
               <img
                 src={avatarUrl}
@@ -172,7 +211,15 @@ export default function RightSidebar() {
               >
                 {displayName}
               </p>
-              <p style={{ fontSize: 11, color: "var(--fg-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "var(--fg-muted)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {user?.email}
               </p>
             </div>
@@ -206,7 +253,14 @@ export default function RightSidebar() {
           </p>
 
           {contacts.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--fg-muted)", textAlign: "center", padding: "20px 16px" }}>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--fg-muted)",
+                textAlign: "center",
+                padding: "20px 16px",
+              }}
+            >
               No other members yet.
               <br />
               <span style={{ fontSize: 11 }}>他のメンバーはまだいません。</span>
@@ -225,18 +279,31 @@ export default function RightSidebar() {
                       padding: "8px 16px",
                       transition: "background 0.15s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "var(--bg-glass)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
                   >
                     {/* Avatar */}
                     <div
                       onClick={() => handleContactClick(contact.id)}
-                      style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}
+                      style={{
+                        position: "relative",
+                        flexShrink: 0,
+                        cursor: "pointer",
+                      }}
                     >
                       <img
                         src={getAvatar(contact)}
                         alt={contact.name ?? "Member"}
-                        style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--border)" }}
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: "50%",
+                          border: "1px solid var(--border)",
+                        }}
                       />
                       <span
                         style={{
@@ -246,9 +313,13 @@ export default function RightSidebar() {
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          background: online ? "var(--green)" : "var(--fg-muted)",
+                          background: online
+                            ? "var(--green)"
+                            : "var(--fg-muted)",
                           border: "2px solid var(--bg-card)",
-                          boxShadow: online ? "0 0 6px var(--green-glow)" : "none",
+                          boxShadow: online
+                            ? "0 0 6px var(--green-glow)"
+                            : "none",
                         }}
                       />
                     </div>
@@ -258,16 +329,34 @@ export default function RightSidebar() {
                       onClick={() => handleContactClick(contact.id)}
                       style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
                     >
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "var(--fg-secondary)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {contact.name ?? "Member"}
                       </p>
                       {online && (
-                        <p style={{ fontSize: 10, color: "var(--green)" }}>● Online</p>
+                        <p style={{ fontSize: 10, color: "var(--green)" }}>
+                          ● Online
+                        </p>
                       )}
                     </div>
 
                     {/* Action buttons */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        flexShrink: 0,
+                      }}
+                    >
                       {/* DM button */}
                       <button
                         onClick={() => handleContactClick(contact.id)}
@@ -309,8 +398,14 @@ export default function RightSidebar() {
                             whiteSpace: "nowrap",
                             transition: "all 0.15s",
                           }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.25)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(139,92,246,0.12)")}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "rgba(139,92,246,0.25)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background =
+                              "rgba(139,92,246,0.12)")
+                          }
                         >
                           Nana
                         </button>
