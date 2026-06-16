@@ -7,6 +7,7 @@ import { createNanaRoom } from "@/lib/arcade/nana-rooms";
 import { useRealtimeNanaInvite } from "@/hooks/useRealtimeNanaInvite";
 import type { NanaInvitePayload } from "@/hooks/useRealtimeNanaInvite";
 import NanaRoomLobby from "./NanaRoomLobby";
+import NanaInviteToast from "./NanaInviteToast";
 
 interface NanaGameProps {
   userId: string;
@@ -23,13 +24,13 @@ export default function NanaGame({
   onGameEnd,
   onExit,
 }: NanaGameProps) {
-  const { setNanaInviteReady, clearNanaInvite } = useApp();
+  const { setNanaInviteReady, clearNanaInvite, nanaInviteSoundEnabled } =
+    useApp();
 
   const [showLobby, setShowLobby] = useState(false);
   const [pendingInvitePayload, setPendingInvitePayload] = useState<
     NanaInvitePayload | undefined
-  >();
-  // 改成：
+  >(undefined);
   const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>(
     undefined,
   );
@@ -42,7 +43,7 @@ export default function NanaGame({
     },
   });
 
-  // ── 建立房間後 wire-in invite fn → AppContext ─────────────────────────
+  // ── 建立房間，wire-in invite fn → AppContext ──────────────────────────
   async function handleStartMultiplayer() {
     const room = await createNanaRoom(userId);
     if (!room) return;
@@ -56,7 +57,7 @@ export default function NanaGame({
     setShowLobby(true);
   }
 
-  // ── Lobby 關閉時清除 Context ──────────────────────────────────────────
+  // ── Lobby 關閉時清除 ──────────────────────────────────────────────────
   function handleLobbyExit() {
     inviteFnRef.current = undefined;
     clearNanaInvite();
@@ -70,8 +71,8 @@ export default function NanaGame({
     playerIndex: number,
     playerCount: number,
   ) {
-    // TODO: 進入實際遊戲畫面
     console.log("[NanaGame] room ready", { roomId, playerIndex, playerCount });
+    // TODO: 進入實際遊戲畫面
   }
 
   // ── unmount 時清除 ────────────────────────────────────────────────────
@@ -81,8 +82,19 @@ export default function NanaGame({
     };
   }, [clearNanaInvite]);
 
-  // ── 收到邀請 → Lobby autoJoin ─────────────────────────────────────────
-  if (pendingInvitePayload) {
+  // ── 主畫面 base（所有分支共用） ───────────────────────────────────────
+  const mainScreen = (
+    <div className="nana-game">
+      <h2>Nana / ナナ</h2>
+      <button onClick={handleStartMultiplayer}>
+        Multiplayer / マルチプレイ
+      </button>
+      {onExit && <button onClick={onExit}>Exit / 退出</button>}
+    </div>
+  );
+
+  // ── 收到邀請 + 已接受 → Lobby autoJoin ───────────────────────────────
+  if (pendingInvitePayload && showLobby) {
     return (
       <NanaRoomLobby
         userId={userId}
@@ -92,6 +104,21 @@ export default function NanaGame({
         onRoomReady={handleRoomReady}
         onExit={handleLobbyExit}
       />
+    );
+  }
+
+  // ── 收到邀請，等待用戶決定 → Toast 疊在主畫面上 ──────────────────────
+  if (pendingInvitePayload) {
+    return (
+      <>
+        {mainScreen}
+        <NanaInviteToast
+          fromUserName={pendingInvitePayload.fromUserName}
+          soundEnabled={nanaInviteSoundEnabled}
+          onAccept={() => setShowLobby(true)}
+          onDecline={() => setPendingInvitePayload(undefined)}
+        />
+      </>
     );
   }
 
@@ -109,13 +136,5 @@ export default function NanaGame({
   }
 
   // ── 主畫面 ───────────────────────────────────────────────────────────
-  return (
-    <div className="nana-game">
-      <h2>Nana / ナナ</h2>
-      <button onClick={handleStartMultiplayer}>
-        Multiplayer / マルチプレイ
-      </button>
-      {onExit && <button onClick={onExit}>Exit / 退出</button>}
-    </div>
-  );
+  return mainScreen;
 }

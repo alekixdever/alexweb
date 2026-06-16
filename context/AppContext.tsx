@@ -49,6 +49,8 @@ interface AppContextType extends AppState {
   nanaInviteContact: ((targetUserId: string) => void) | undefined;
   setNanaInviteReady: (roomId: string, inviteFn: (targetUserId: string) => void) => void;
   clearNanaInvite: () => void;
+  nanaInviteSoundEnabled: boolean;
+  toggleNanaInviteSound: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -84,12 +86,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [nanaInviteContact, setNanaInviteContact] = useState<
     ((targetUserId: string) => void) | undefined
   >();
+  const [nanaInviteSoundEnabled, setNanaInviteSoundEnabled] = useState(true);
 
   // Apply theme from localStorage on mount (client only)
   useEffect(() => {
     const saved = getStoredTheme();
     document.documentElement.setAttribute("data-theme", saved);
     setState((prev) => ({ ...prev, theme: saved }));
+    // Restore nana sound preference
+    const sound = localStorage.getItem("nanaInviteSound");
+    if (sound === "false") setNanaInviteSoundEnabled(false);
   }, []);
 
   useEffect(() => {
@@ -219,6 +225,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNanaInviteContact(undefined);
   }, []);
 
+  const toggleNanaInviteSound = useCallback(() => {
+    setNanaInviteSoundEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem("nanaInviteSound", String(next));
+      return next;
+    });
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -235,6 +249,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nanaInviteContact,
         setNanaInviteReady,
         clearNanaInvite,
+        nanaInviteSoundEnabled,
+        toggleNanaInviteSound,
       }}
     >
       {children}

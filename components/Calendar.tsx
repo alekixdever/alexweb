@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
@@ -29,25 +30,8 @@ function MonthGrid({
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
-  const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-  });
-
   return (
-    <div style={{ marginBottom: 16 }}>
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--fg-secondary)",
-          marginBottom: 10,
-          textAlign: "center",
-        }}
-      >
-        {monthLabel}
-      </p>
-
+    <div>
       {/* Day headers */}
       <div
         style={{
@@ -136,29 +120,152 @@ function MonthGrid({
 
 export default function Calendar({ selectedDate, onSelect }: Props) {
   const now = new Date();
-  const thisYear = now.getFullYear();
-  const thisMonth = now.getMonth();
-  const nextMonthDate = new Date(thisYear, thisMonth + 1, 1);
-  const nextYear = nextMonthDate.getFullYear();
-  const nextMonth = nextMonthDate.getMonth();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+  });
+
+  function prevMonth() {
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  }
+
+  function goToday() {
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
+  }
 
   return (
     <div>
-      <p className="label-xs" style={{ marginBottom: 12 }}>
-        Date / 日付
-      </p>
-      <MonthGrid
-        year={thisYear}
-        month={thisMonth}
-        selectedDate={selectedDate}
-        onSelect={onSelect}
-      />
+      {/* Header */}
       <div
-        style={{ height: 1, background: "var(--border)", margin: "4px 0 16px" }}
-      />
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 12,
+        }}
+      >
+        <p className="label-xs">Date / 日付</p>
+        <button
+          onClick={goToday}
+          style={{
+            fontSize: 10,
+            padding: "2px 8px",
+            borderRadius: 4,
+            border: "1px solid var(--border)",
+            background: "none",
+            color: "var(--fg-muted)",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--accent)";
+            e.currentTarget.style.color = "var(--accent-bright)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.color = "var(--fg-muted)";
+          }}
+        >
+          Today
+        </button>
+      </div>
+
+      {/* Month navigation */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        }}
+      >
+        <button
+          onClick={prevMonth}
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "none",
+            cursor: "pointer",
+            color: "var(--fg-muted)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--accent)";
+            e.currentTarget.style.color = "var(--accent-bright)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.color = "var(--fg-muted)";
+          }}
+        >
+          <ChevronLeft size={13} />
+        </button>
+
+        <p
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--fg-secondary)",
+            textAlign: "center",
+          }}
+        >
+          {monthLabel}
+        </p>
+
+        <button
+          onClick={nextMonth}
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "none",
+            cursor: "pointer",
+            color: "var(--fg-muted)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--accent)";
+            e.currentTarget.style.color = "var(--accent-bright)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.color = "var(--fg-muted)";
+          }}
+        >
+          <ChevronRight size={13} />
+        </button>
+      </div>
+
       <MonthGrid
-        year={nextYear}
-        month={nextMonth}
+        year={viewYear}
+        month={viewMonth}
         selectedDate={selectedDate}
         onSelect={onSelect}
       />
