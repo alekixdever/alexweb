@@ -60,6 +60,8 @@ export default function ArcadeLobby() {
   if (activeGame === "nana") {
     // 第 61 行替換成：
     // 改成：
+    // 改成：
+    if (!user) return null;
     return <NanaGame userId={user.id} onExit={() => setActiveGame(null)} />;
   }
 
