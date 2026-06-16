@@ -48,8 +48,25 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     user?.user_metadata?.avatar_url ??
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
+  // 讀取未讀訊息
+  async function fetchUnread() {
+    if (!user?.id) return;
+    const { data: unread } = await supabase
+      .from("messages")
+      .select("sender_id")
+      .eq("receiver_id", user.id)
+      .eq("read", false);
+    const map: Record<string, number> = {};
+    (unread ?? []).forEach((m: { sender_id: string }) => {
+      map[m.sender_id] = (map[m.sender_id] ?? 0) + 1;
+    });
+    setUnreadMap(map);
+  }
+
   useEffect(() => {
     if (!user?.id) return;
+
+    // 載入聯絡人
     const fetchContacts = async () => {
       const { data } = await supabase
         .from("profiles")
@@ -57,21 +74,26 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
         .neq("id", user.id)
         .order("name");
       setContacts(data ?? []);
-
-      // Fetch unread counts
-      const { data: unread } = await supabase
-        .from("messages")
-        .select("sender_id")
-        .eq("receiver_id", user.id)
-        .eq("read", false);
-
-      const map: Record<string, number> = {};
-      (unread ?? []).forEach((m) => {
-        map[m.sender_id] = (map[m.sender_id] ?? 0) + 1;
-      });
-      setUnreadMap(map);
     };
     fetchContacts();
+    fetchUnread();
+
+    // Realtime 訂閱 messages → 即時更新未讀
+    const channel = supabase
+      .channel("sidebar-messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        () => { fetchUnread(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const getAvatar = (contact: Contact) =>
@@ -79,6 +101,12 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.name ?? contact.id}`;
 
   function handleContactClick(contactId: string) {
+    // 清除該聯絡人的未讀點（樂觀更新）
+    setUnreadMap((prev) => {
+      const next = { ...prev };
+      delete next[contactId];
+      return next;
+    });
     onOpenDM?.(contactId);
   }
 

@@ -12,6 +12,17 @@ const lang =
   typeof navigator !== "undefined" && navigator.language.startsWith("ja")
     ? "ja"
     : "en";
+
+// Inject responsive width for DMDrawer
+if (typeof document !== "undefined" && !document.getElementById("dm-drawer-style")) {
+  const s = document.createElement("style");
+  s.id = "dm-drawer-style";
+  s.textContent = `
+    .dm-drawer-panel { width: 360px; }
+    @media (max-width: 1023px) { .dm-drawer-panel { width: min(300px, 88vw) !important; } }
+  `;
+  document.head.appendChild(s);
+}
 const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -655,13 +666,12 @@ export default function DMDrawer({
 
       {/* Drawer */}
       <div
+        className="dm-drawer-panel"
         style={{
           position: "fixed",
           top: 0,
           right: 0,
           bottom: 0,
-          width: 360,
-          maxWidth: "100dvw",
           background: "var(--bg-card)",
           borderLeft: "1px solid var(--border)",
           zIndex: 401,
