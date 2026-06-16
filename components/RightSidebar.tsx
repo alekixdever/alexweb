@@ -18,7 +18,7 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
-  const { isLoggedIn, openAuthModal, logout, user, nanaRoomId, nanaInviteContact } =
+  const { isLoggedIn, openAuthModal, logout, user, activeGame, inviteContact } =
     useApp();
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
@@ -452,11 +452,11 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                       </div>
 
                       {/* Game invite button — shown for any active game */}
-                      {nanaRoomId && nanaInviteContact && (
+                      {activeGame && inviteContact && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            nanaInviteContact(contact.id);
+                            inviteContact(contact.id);
                           }}
                           title={`Invite to ${getInviteLabel(activeGame.gameId)}`}
                           style={{
