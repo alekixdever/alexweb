@@ -118,25 +118,26 @@ export default function MainContent({
         )}
 
         {/* Mobile: contacts button */}
-        <button
-          className="lg:hidden"
-          onClick={() => setRightDrawer(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 34,
-            height: 34,
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border)",
-            background: "var(--bg-glass)",
-            cursor: "pointer",
-            color: "var(--fg-secondary)",
-            flexShrink: 0,
-          }}
-        >
-          <Users size={15} />
-        </button>
+        <div className="lg:hidden">
+          <button
+            onClick={() => setRightDrawer(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 34,
+              height: 34,
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border)",
+              background: "var(--bg-glass)",
+              cursor: "pointer",
+              color: "var(--fg-secondary)",
+              flexShrink: 0,
+            }}
+          >
+            <Users size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Main content tabs */}

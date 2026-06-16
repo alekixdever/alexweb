@@ -303,13 +303,11 @@ function ConversationView({
   otherUser: Profile;
   onBack: () => void;
 }) {
-  const { nanaInviteSoundEnabled } = useApp();
   const { messages, sendMessage, markAllRead, loading } = useRealtimeDM(
     currentUserId,
     otherUser.id,
   );
   const [text, setText] = useState("");
-  const prevCountRef = useRef(0);
   const [imageUrl, setImageUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
   const [sending, setSending] = useState(false);
@@ -325,29 +323,6 @@ function ConversationView({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Play sound on new incoming message
-  useEffect(() => {
-    const incoming = messages.filter((m) => m.sender_id !== currentUserId);
-    if (incoming.length > prevCountRef.current && prevCountRef.current > 0) {
-      if (nanaInviteSoundEnabled) {
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.setValueAtTime(880, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.3);
-        } catch (_) {}
-      }
-    }
-    prevCountRef.current = incoming.length;
-  }, [messages, currentUserId, nanaInviteSoundEnabled]);
 
   async function handleSend() {
     if (!text.trim() && !imageUrl.trim()) return;
@@ -398,7 +373,7 @@ function ConversationView({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
       {/* Header */}
       <div
         style={{
@@ -499,7 +474,7 @@ function ConversationView({
                       borderRadius: isMe
                         ? "14px 14px 4px 14px"
                         : "14px 14px 14px 4px",
-                      background: isMe ? "var(--accent)" : "var(--surface-2)",
+                      background: isMe ? "var(--accent)" : "var(--bg-glass)",
                       color: isMe ? "#fff" : "var(--fg-primary)",
                       fontSize: 13,
                       lineHeight: 1.45,
