@@ -23,6 +23,30 @@ interface UseRealtimeDMReturn {
   loading: boolean;
 }
 
+// ── Notification sound ────────────────────────────────────────────────────
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+  } catch {
+    // AudioContext not available (SSR / browser policy)
+  }
+}
+
 export function useRealtimeDM(
   currentUserId: string | undefined,
   otherUserId: string | undefined,
@@ -69,6 +93,7 @@ export function useRealtimeDM(
           // Only append if it's from otherUserId
           if (incoming.sender_id !== otherUserId) return;
           setMessages((prev) => [...prev, incoming]);
+          playNotificationSound();
         },
       )
       .subscribe();

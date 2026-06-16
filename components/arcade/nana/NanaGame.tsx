@@ -97,19 +97,24 @@ export default function NanaGame({ onExit }: Props) {
     };
   }, [clearNanaInvite]);
 
+  // ── Room created — wire-in invite fn immediately ──────────────────────────
+  const handleRoomCreated = useCallback(
+    (rid: string) => {
+      const inviteFn = (targetUserId: string) => {
+        broadcastNanaInvite(rid, targetUserId, user?.id ?? "", profileName);
+      };
+      inviteFnRef.current = inviteFn;
+      setNanaInviteReady(rid, inviteFn);
+    },
+    [broadcastNanaInvite, profileName, setNanaInviteReady, user?.id],
+  );
+
   // ── Room ready — start game ───────────────────────────────────────────────
   const handleRoomReady = useCallback(
     async (rid: string, playerIndex: number, playerCount: number) => {
       setRoomId(rid);
       setMyPlayerIndex(playerIndex);
       setRoomPlayerCount(playerCount);
-
-      // 建立房間後 wire-in invite fn → AppContext
-      const inviteFn = (targetUserId: string) => {
-        broadcastNanaInvite(rid, targetUserId, user?.id ?? "", profileName);
-      };
-      inviteFnRef.current = inviteFn;
-      setNanaInviteReady(rid, inviteFn);
 
       if (playerIndex !== 0) return;
 
@@ -126,13 +131,7 @@ export default function NanaGame({ onExit }: Props) {
       await updateNanaRoomStatus(rid, "playing");
       await broadcastGameState(state);
     },
-    [
-      broadcastGameState,
-      broadcastNanaInvite,
-      profileName,
-      setNanaInviteReady,
-      user?.id,
-    ],
+    [broadcastGameState],
   );
 
   // ── Lobby exit ────────────────────────────────────────────────────────────
@@ -219,6 +218,7 @@ export default function NanaGame({ onExit }: Props) {
           userName={profileName}
           lang={lang}
           onRoomReady={handleRoomReady}
+          onRoomCreated={handleRoomCreated}
           onExit={onExit}
         />
 

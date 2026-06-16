@@ -20,8 +20,9 @@ interface Props {
     playerIndex: number,
     playerCount: number,
   ) => void;
+  onRoomCreated?: (roomId: string) => void; // ← 新增：建房後立即通知
   onExit: () => void;
-  pendingInviteRoomId?: string; // ← 新增：接受邀請後自動加入
+  pendingInviteRoomId?: string;
 }
 
 type LobbyPhase = "menu" | "creating" | "waiting" | "joining" | "join_input";
@@ -31,6 +32,7 @@ export default function NanaRoomLobby({
   userName,
   lang,
   onRoomReady,
+  onRoomCreated,
   onExit,
   pendingInviteRoomId,
 }: Props) {
@@ -136,6 +138,7 @@ export default function NanaRoomLobby({
       setRoomId(id);
       setMyPlayerIndex(playerIndex);
       setPhase("waiting");
+      onRoomCreated?.(id); // ← 建房後立即通知 NanaGame，讓 RightSidebar 顯示邀請按鈕
     } catch {
       setError(t("Failed to create room.", "部屋の作成に失敗しました。"));
       setPhase("menu");
