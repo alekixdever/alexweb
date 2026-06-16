@@ -29,7 +29,10 @@ export default function NanaGame({
   const [pendingInvitePayload, setPendingInvitePayload] = useState<
     NanaInvitePayload | undefined
   >();
-  const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>();
+  // 改成：
+  const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>(
+    undefined,
+  );
 
   // ── Realtime invite hook (Jane) ──────────────────────────────────────────
   const { broadcastNanaInvite } = useRealtimeNanaInvite({
