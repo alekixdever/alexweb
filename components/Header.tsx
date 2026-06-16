@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { Menu, Search, Sun, Moon, User } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import InfoModal from "./InfoModal";
+import BGMPlayer from "@/components/BGMPlayer";
 
 export default function Header() {
   const {
@@ -200,6 +201,9 @@ export default function Header() {
               ⚙️
             </button>
           )}
+
+          {/* BGM Player */}
+          <BGMPlayer />
 
           <button
             onClick={toggleTheme}
