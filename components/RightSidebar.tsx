@@ -71,9 +71,25 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     fetchContacts();
     fetchUnread();
 
-    // Poll every 5 seconds for new unread messages
-    const interval = setInterval(fetchUnread, 5000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel(`sidebar-messages-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${userId}`,
+        },
+        () => {
+          fetchUnread();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   const getAvatar = (contact: Contact) =>

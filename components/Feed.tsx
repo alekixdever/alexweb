@@ -114,7 +114,6 @@ export default function Feed() {
     <div
       style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}
     >
-      <p style={{ color: "red" }}>FEED MOUNTED</p>
       {/* Composer */}
       <PostComposer onPost={handleNewPost} />
 
