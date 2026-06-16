@@ -21,6 +21,7 @@ interface Props {
     playerCount: number,
   ) => void;
   onExit: () => void;
+  pendingInviteRoomId?: string; // ← 新增：接受邀請後自動加入
 }
 
 type LobbyPhase = "menu" | "creating" | "waiting" | "joining" | "join_input";
@@ -31,6 +32,7 @@ export default function NanaRoomLobby({
   lang,
   onRoomReady,
   onExit,
+  pendingInviteRoomId,
 }: Props) {
   const [phase, setPhase] = useState<LobbyPhase>("menu");
   const [playerCount, setPlayerCount] = useState(2);
@@ -42,13 +44,53 @@ export default function NanaRoomLobby({
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
+  // ── Auto-join when pendingInviteRoomId is set ─────────────────────────────
+  useEffect(() => {
+    if (!pendingInviteRoomId) return;
+
+    async function autoJoin() {
+      setPhase("joining");
+      setError(null);
+      try {
+        const room = await getNanaRoom(pendingInviteRoomId!);
+        if (!room) {
+          setError(t("Room not found.", "部屋が見つかりません。"));
+          setPhase("menu");
+          return;
+        }
+        if (room.status !== "waiting") {
+          setError(
+            t(
+              "This room has already started.",
+              "このゲームはすでに開始しています。",
+            ),
+          );
+          setPhase("menu");
+          return;
+        }
+        const { playerIndex } = await joinNanaRoom(
+          pendingInviteRoomId!,
+          userId,
+          userName,
+        );
+        setRoomId(pendingInviteRoomId!);
+        setMyPlayerIndex(playerIndex);
+        setPhase("waiting");
+      } catch {
+        setError(t("Failed to join room.", "部屋への参加に失敗しました。"));
+        setPhase("menu");
+      }
+    }
+
+    autoJoin();
+  }, [pendingInviteRoomId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Watch room players via Realtime ───────────────────────────────────────
   useEffect(() => {
     if (!roomId || phase !== "waiting") return;
 
     const supabase = createClient();
 
-    // Initial fetch
     getNanaRoomPlayers(roomId).then(setPlayers);
 
     const channel = supabase
@@ -94,7 +136,7 @@ export default function NanaRoomLobby({
       setRoomId(id);
       setMyPlayerIndex(playerIndex);
       setPhase("waiting");
-    } catch (e) {
+    } catch {
       setError(t("Failed to create room.", "部屋の作成に失敗しました。"));
       setPhase("menu");
     }
@@ -135,7 +177,7 @@ export default function NanaRoomLobby({
       setRoomId(code);
       setMyPlayerIndex(playerIndex);
       setPhase("waiting");
-    } catch (e) {
+    } catch {
       setError(t("Failed to join room.", "部屋への参加に失敗しました。"));
       setPhase("join_input");
     }
@@ -362,7 +404,7 @@ export default function NanaRoomLobby({
         {t("Waiting for players…", "プレイヤーを待っています…")}
       </p>
 
-      {/* Room code — big and shareable */}
+      {/* Room code */}
       <div
         style={{
           padding: "16px 32px",
