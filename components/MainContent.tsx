@@ -17,11 +17,10 @@ export default function MainContent({
   selectedDate,
   selectedCategory,
 }: Props) {
-  const { columnLayout, setColumnLayout } = useApp();
+  const { columnLayout, setColumnLayout, setRightDrawer } = useApp();
   const [activeTab, setActiveTab] = useState<"events" | "community">("events");
-  const isAll = selectedLocation === "all";
-  const locationName = selectedLocation === "all" ? "All Venues / 全会場" : "";
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -32,6 +31,7 @@ export default function MainContent({
     minute: "2-digit",
     second: "2-digit",
   });
+
   const dateLabel = new Date(selectedDate + "T00:00:00").toLocaleDateString(
     "en-US",
     {
@@ -79,7 +79,7 @@ export default function MainContent({
           </p>
         </div>
 
-        {/* Layout toggle — desktop only, events tab only */}
+        {/* Desktop: layout toggle (events tab only) */}
         {activeTab === "events" && (
           <div
             className="hidden lg:flex"
@@ -89,7 +89,6 @@ export default function MainContent({
               background: "var(--bg-glass)",
               border: "1px solid var(--border)",
               borderRadius: "var(--radius-sm)",
-              display: "flex",
             }}
           >
             {([1, 3] as const).map((col) => (
@@ -112,15 +111,32 @@ export default function MainContent({
                   transition: "all 0.2s",
                 }}
               >
-                {col === 1 ? (
-                  <LayoutList size={13} />
-                ) : (
-                  <LayoutGrid size={13} />
-                )}
+                {col === 1 ? <LayoutList size={13} /> : <LayoutGrid size={13} />}
               </button>
             ))}
           </div>
         )}
+
+        {/* Mobile: contacts button */}
+        <button
+          className="lg:hidden"
+          onClick={() => setRightDrawer(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 34,
+            height: 34,
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border)",
+            background: "var(--bg-glass)",
+            cursor: "pointer",
+            color: "var(--fg-secondary)",
+            flexShrink: 0,
+          }}
+        >
+          <Users size={15} />
+        </button>
       </div>
 
       {/* Main content tabs */}
