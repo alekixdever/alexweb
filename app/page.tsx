@@ -8,6 +8,7 @@ import MainContent from "@/components/MainContent";
 import RightSidebar from "@/components/RightSidebar";
 import AuthModal from "@/components/AuthModal";
 import MobileDrawer from "@/components/MobileDrawer";
+import DMDrawer from "@/components/DMDrawer";
 
 export default function Home() {
   const todayStr = new Date().toISOString().split("T")[0];
@@ -15,6 +16,13 @@ export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const { setLeftDrawer } = useApp();
+  const [dmOpen, setDmOpen] = useState(false);
+  const [dmContactId, setDmContactId] = useState<string | null>(null);
+
+  function openDM(contactId: string) {
+    setDmContactId(contactId);
+    setDmOpen(true);
+  }
 
   const handleLocationSelect = (id: string) => {
     setSelectedLocation(id);
@@ -81,7 +89,7 @@ export default function Home() {
           />
 
           <div className="hidden lg:block" style={{ flexShrink: 0 }}>
-            <RightSidebar />
+            <RightSidebar onOpenDM={openDM} />
           </div>
         </div>
       </div>
@@ -99,10 +107,17 @@ export default function Home() {
       </MobileDrawer>
 
       <MobileDrawer side="right">
-        <RightSidebar />
+        <RightSidebar onOpenDM={openDM} />
       </MobileDrawer>
 
       <AuthModal />
+
+      {/* DM Drawer — top level, not inside MobileDrawer */}
+      <DMDrawer
+        open={dmOpen}
+        onClose={() => { setDmOpen(false); setDmContactId(null); }}
+        initialContactId={dmContactId}
+      />
     </div>
   );
 }

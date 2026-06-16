@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { usePresence } from "@/hooks/usePresence";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
-import DMDrawer from "@/components/DMDrawer";
 
 interface Contact {
   id: string;
@@ -14,7 +13,19 @@ interface Contact {
   avatar_url: string | null;
 }
 
-export default function RightSidebar() {
+// Inject pulse animation
+if (typeof document !== "undefined" && !document.getElementById("dm-pulse-style")) {
+  const style = document.createElement("style");
+  style.id = "dm-pulse-style";
+  style.textContent = `@keyframes dmPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }`;
+  document.head.appendChild(style);
+}
+
+interface RightSidebarProps {
+  onOpenDM?: (contactId: string) => void;
+}
+
+export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
   const {
     isLoggedIn,
     openAuthModal,
@@ -26,8 +37,8 @@ export default function RightSidebar() {
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [dmOpen, setDmOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const supabase = createClient();
 
   const displayName =
@@ -46,6 +57,19 @@ export default function RightSidebar() {
         .neq("id", user.id)
         .order("name");
       setContacts(data ?? []);
+
+      // Fetch unread counts
+      const { data: unread } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .eq("receiver_id", user.id)
+        .eq("read", false);
+
+      const map: Record<string, number> = {};
+      (unread ?? []).forEach((m) => {
+        map[m.sender_id] = (map[m.sender_id] ?? 0) + 1;
+      });
+      setUnreadMap(map);
     };
     fetchContacts();
   }, [user?.id]);
@@ -55,8 +79,7 @@ export default function RightSidebar() {
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.name ?? contact.id}`;
 
   function handleContactClick(contactId: string) {
-    setSelectedUserId(contactId);
-    setDmOpen(true);
+    onOpenDM?.(contactId);
   }
 
   if (!isLoggedIn) {
@@ -357,26 +380,42 @@ export default function RightSidebar() {
                         flexShrink: 0,
                       }}
                     >
-                      {/* DM button */}
-                      <button
-                        onClick={() => handleContactClick(contact.id)}
-                        title="Direct Message"
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 6,
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "var(--fg-muted)",
-                        }}
-                      >
-                        💬
-                      </button>
+                      {/* DM button + unread dot */}
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        {/* Unread dot — left of button, near name */}
+                        {(unreadMap[contact.id] ?? 0) > 0 && (
+                          <span
+                            style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: "50%",
+                              background: "var(--accent2)",
+                              marginRight: 4,
+                              flexShrink: 0,
+                              animation: "dmPulse 1.2s ease-in-out infinite",
+                            }}
+                          />
+                        )}
+                        <button
+                          onClick={() => handleContactClick(contact.id)}
+                          title="Direct Message"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 6,
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: 13,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "var(--fg-muted)",
+                          }}
+                        >
+                          💬
+                        </button>
+                      </div>
 
                       {/* Nana invite button — only when room is active */}
                       {nanaRoomId && nanaInviteContact && (
@@ -419,17 +458,7 @@ export default function RightSidebar() {
         </div>
       </aside>
 
-      {/* DM Drawer */}
-      {user?.id && (
-        <DMDrawer
-          open={dmOpen}
-          onClose={() => {
-            setDmOpen(false);
-            setSelectedUserId(null);
-          }}
-          initialContactId={selectedUserId}
-        />
-      )}
+
     </>
   );
 }
