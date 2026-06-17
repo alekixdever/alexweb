@@ -29,15 +29,11 @@ export interface ActiveGame {
 }
 
 // ── Background invite flow (2026-06-17, Jane/Max design) ──────────────────
-// Lets RightSidebar invite an online contact to a game WITHOUT the inviter
-// first entering that game's lobby — the room is created in the background
-// and the inviter is navigated in once the invitee accepts. See
-// hooks/useGameInviteFlow.ts for the polling logic this state mirrors.
 export type PendingInviteFlowStatus =
   | "creating_room"
   | "waiting_for_accept"
   | "opponent_joined"
-  | "error"; // 30s timeout, room creation failure, or invite-send failure
+  | "error";
 
 export interface PendingInviteFlow {
   gameId: "nana" | "snake";
@@ -47,9 +43,6 @@ export interface PendingInviteFlow {
   errorMessage?: string;
 }
 
-/** Mirrors GameAdapter in hooks/useGameInviteFlow.ts — declared separately
- *  here (rather than imported) to avoid a circular dependency between this
- *  context file and the hook that will be driven from inside it. */
 export interface GameInviteAdapter {
   createRoom: () => Promise<string>;
   joinAsHost: (roomId: string) => Promise<{ playerIndex: number }>;
@@ -85,7 +78,6 @@ interface AppContextType extends AppState {
   setRightDrawer: (open: boolean) => void;
   toggleTheme: () => void;
   setColumnLayout: (col: ColumnLayout) => void;
-  // Generic game invite system
   activeGame: ActiveGame | null;
   inviteContact: ((targetUserId: string) => void) | undefined;
   registerGameInvite: (
@@ -96,22 +88,13 @@ interface AppContextType extends AppState {
   unregisterGameInvite: () => void;
   nanaInviteSoundEnabled: boolean;
   toggleNanaInviteSound: () => void;
-  // Background invite flow — see PendingInviteFlow above
   pendingInviteFlow: PendingInviteFlow | null;
-  /** Start a background invite: creates the room, joins as host, sends the
-   *  invite, and polls until the invitee joins. Runs inside AppProvider so
-   *  it keeps running even if RightSidebar (or whatever called this)
-   *  unmounts due to navigation. */
   startGameInvite: (
     gameId: "nana" | "snake",
     targetUserId: string,
     adapter: GameInviteAdapter,
   ) => Promise<void>;
-  /** Cancel the in-flight invite flow, if any, and clear pendingInviteFlow. */
   cancelGameInvite: () => void;
-  /** Clear pendingInviteFlow without cancelling polling — used after the
-   *  inviter has been successfully navigated into the game on
-   *  opponent_joined, so the banner disappears. */
   clearPendingInviteFlow: () => void;
 }
 
@@ -122,15 +105,22 @@ function getAutoTheme(): Theme {
   return hour >= 6 && hour < 18 ? "light" : "dark";
 }
 
-function getStoredTheme(): Theme {
+function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   return (localStorage.getItem("theme") as Theme) ?? getAutoTheme();
+}
+
+function getInitialSound(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem("nanaInviteSound") !== "false";
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
-  const [state, setState] = useState<AppState>({
+  // ── Theme & sound read from localStorage at init time (not in an effect)
+  // to avoid the "setState synchronously in effect" lint warning.
+  const [state, setState] = useState<AppState>(() => ({
     isLoggedIn: false,
     user: null,
     userRole: null,
@@ -139,39 +129,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingAction: null,
     leftDrawerOpen: false,
     rightDrawerOpen: false,
-    theme: "dark",
+    theme: getInitialTheme(),
     columnLayout: 1,
-  });
+  }));
 
-  // Game invite — ref for inviteFn (avoids setState double-wrap bug)
   const [activeGame, setActiveGame] = useState<ActiveGame | null>(null);
   const inviteFnRef = useRef<((targetUserId: string) => void) | undefined>(undefined);
   const [inviteContact, setInviteContact] = useState<
     ((targetUserId: string) => void) | undefined
   >(undefined);
 
-  const [nanaInviteSoundEnabled, setNanaInviteSoundEnabled] = useState(true);
+  const [nanaInviteSoundEnabled, setNanaInviteSoundEnabled] = useState<boolean>(
+    getInitialSound,
+  );
 
   // ── Background invite flow state ──────────────────────────────────────
-  // Lives in AppProvider (not RightSidebar) specifically so the polling
-  // loop below survives navigation — RightSidebar can unmount/remount
-  // freely without interrupting an in-flight invite.
   const [pendingInviteFlow, setPendingInviteFlowState] =
     useState<PendingInviteFlow | null>(null);
   const inviteFlowCancelledRef = useRef(false);
   const inviteFlowPollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inviteFlowPollAttemptsRef = useRef(0);
   const INVITE_FLOW_POLL_INTERVAL_MS = 2000;
-  const INVITE_FLOW_MAX_POLL_ATTEMPTS = 15; // 15 * 2s = 30s timeout
+  const INVITE_FLOW_MAX_POLL_ATTEMPTS = 15;
 
-  // Apply theme from localStorage on mount (client only)
+  // Apply theme attribute to <html> on mount / theme change
   useEffect(() => {
-    const saved = getStoredTheme();
-    document.documentElement.setAttribute("data-theme", saved);
-    setState((prev) => ({ ...prev, theme: saved }));
-    const sound = localStorage.getItem("nanaInviteSound");
-    if (sound === "false") setNanaInviteSoundEnabled(false);
-  }, []);
+    document.documentElement.setAttribute("data-theme", state.theme);
+  }, [state.theme]);
 
   useEffect(() => {
     const fetchSessionAndRole = async () => {
@@ -280,7 +264,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const next = state.theme === "dark" ? "light" : "dark";
     localStorage.setItem("theme", next);
-    document.documentElement.setAttribute("data-theme", next);
     setState((prev) => ({ ...prev, theme: next }));
   };
 
@@ -292,7 +275,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (gameId: string, roomId: string, inviteFn: (targetUserId: string) => void) => {
       inviteFnRef.current = inviteFn;
       setActiveGame({ gameId, roomId });
-      // 用 wrapper 避免 React setState 把 function 當 updater 執行
       setInviteContact(() => (targetUserId: string) => {
         inviteFnRef.current?.(targetUserId);
       });
@@ -322,8 +304,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [stopInvitePolling]);
 
   const clearPendingInviteFlow = useCallback(() => {
-    // Does NOT cancel polling — only used after a successful hand-off
-    // (opponent_joined → inviter navigated in) to dismiss the banner.
     setPendingInviteFlowState(null);
   }, []);
 
@@ -333,7 +313,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       targetUserId: string,
       adapter: GameInviteAdapter,
     ) => {
-      // Only one in-flight invite at a time — cancel any existing one first.
       stopInvitePolling();
       inviteFlowCancelledRef.current = false;
       inviteFlowPollAttemptsRef.current = 0;
@@ -364,8 +343,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? {
                 ...prev,
                 status: "error",
-                errorMessage:
-                  "Failed to create room. / 部屋の作成に失敗しました。",
+                errorMessage: "Failed to create room. / 部屋の作成に失敗しました。",
               }
             : prev,
         );
@@ -391,8 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? {
                 ...prev,
                 status: "error",
-                errorMessage:
-                  "Failed to send invite. / 招待の送信に失敗しました。",
+                errorMessage: "Failed to send invite. / 招待の送信に失敗しました。",
               }
             : prev,
         );
@@ -424,11 +401,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setPendingInviteFlowState((prev) =>
               prev ? { ...prev, status: "opponent_joined" } : prev,
             );
-            return; // stop polling — caller's effect on status handles navigation
+            return;
           }
         } catch {
-          // Transient fetch error — keep polling rather than failing the
-          // whole flow over a single dropped request.
+          // Transient fetch error — keep polling
         }
 
         if (!inviteFlowCancelledRef.current) {
@@ -441,9 +417,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.user, stopInvitePolling],
   );
 
-  // Stop polling if the provider itself ever unmounts (e.g. hot reload) —
-  // belt-and-suspenders cleanup, AppProvider normally lives for the whole
-  // app session.
   useEffect(() => {
     return () => stopInvitePolling();
   }, [stopInvitePolling]);

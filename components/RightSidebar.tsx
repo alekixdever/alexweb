@@ -546,7 +546,7 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
                         </button>
                       </div>
 
-                      {online && (
+                      {isLoggedIn && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
