@@ -10,12 +10,16 @@ interface Props {
   selectedLocation: string;
   selectedDate: string;
   selectedCategory: string;
+  incomingInvite?: { gameId: "nana" | "snake"; roomId: string } | null;
+  onIncomingInviteConsumed?: () => void;
 }
 
 export default function MainContent({
   selectedLocation,
   selectedDate,
   selectedCategory,
+  incomingInvite,
+  onIncomingInviteConsumed,
 }: Props) {
   const { columnLayout, setColumnLayout, setRightDrawer } = useApp();
   const [activeTab, setActiveTab] = useState<"events" | "community">("events");
@@ -206,7 +210,10 @@ export default function MainContent({
             selectedCategory={selectedCategory}
           />
         ) : (
-          <CommunityHub />
+          <CommunityHub
+            incomingInvite={incomingInvite}
+            onIncomingInviteConsumed={onIncomingInviteConsumed}
+          />
         )}
       </div>
     </main>

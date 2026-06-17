@@ -19,9 +19,21 @@ export default function Home() {
   const [dmOpen, setDmOpen] = useState(false);
   const [dmContactId, setDmContactId] = useState<string | null>(null);
 
+  // ── Incoming invite (2026-06-17 Max design) ───────────────────────────────
+  // Set when RightSidebar's pendingInviteFlow reaches "opponent_joined".
+  // Passed down MainContent → CommunityHub → ArcadeLobby, which reads it to
+  // skip the lobby and join the given room directly via initialRoomId.
+  const [incomingInvite, setIncomingInvite] = useState<
+    { gameId: "nana" | "snake"; roomId: string } | null
+  >(null);
+
   function openDM(contactId: string) {
     setDmContactId(contactId);
     setDmOpen(true);
+  }
+
+  function handleInviteAccepted(gameId: "nana" | "snake", roomId: string) {
+    setIncomingInvite({ gameId, roomId });
   }
 
   const handleLocationSelect = (id: string) => {
@@ -86,10 +98,12 @@ export default function Home() {
             selectedLocation={selectedLocation}
             selectedDate={selectedDate}
             selectedCategory={selectedCategory}
+            incomingInvite={incomingInvite}
+            onIncomingInviteConsumed={() => setIncomingInvite(null)}
           />
 
           <div className="hidden lg:block" style={{ flexShrink: 0 }}>
-            <RightSidebar onOpenDM={openDM} />
+            <RightSidebar onOpenDM={openDM} onInviteAccepted={handleInviteAccepted} />
           </div>
         </div>
       </div>
@@ -107,7 +121,7 @@ export default function Home() {
       </MobileDrawer>
 
       <MobileDrawer side="right">
-        <RightSidebar onOpenDM={openDM} />
+        <RightSidebar onOpenDM={openDM} onInviteAccepted={handleInviteAccepted} />
       </MobileDrawer>
 
       <AuthModal />

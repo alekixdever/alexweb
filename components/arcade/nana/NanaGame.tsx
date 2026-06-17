@@ -21,6 +21,8 @@ import {
 } from "@/lib/arcade/nana-engine";
 import {
   getNanaRoomPlayers,
+  getNanaRoom,
+  joinNanaRoom,
   updateNanaRoomStatus,
 } from "@/lib/arcade/nana-room-db";
 import type { NanaGameState } from "@/types/arcade";
@@ -28,9 +30,26 @@ import type { FlipTarget } from "@/lib/arcade/nana-engine";
 
 interface Props {
   onExit: () => void;
+  /**
+   * Set when arriving via a direct sidebar invite (2026-06-17 Max design —
+   * mirrors SnakeGame.tsx's initialRoomId). When present, NanaGame skips
+   * NanaRoomLobby and joins this room directly — the inviter's room was
+   * already created in the background by AppContext's startGameInvite.
+   *
+   * Unlike Snake (which polls postgres_changes on snake_rooms.status),
+   * Nana is pure-broadcast: there's no "room status" row to subscribe to
+   * for the start signal. Per Max's 2026-06-17 decision, the invitee
+   * instead waits for the host's first broadcastGameState — useRealtimeNana
+   * subscribes as soon as `roomId` state is set (its effect only depends
+   * on `roomId`, not on any "phase"), so the invitee is already listening
+   * on nana:room:{roomId} well before the host calls setupGame() +
+   * broadcastGameState(). No separate "waiting for start" subscription is
+   * needed — gameState being null vs non-null IS the signal.
+   */
+  initialRoomId?: string;
 }
 
-export default function NanaGame({ onExit }: Props) {
+export default function NanaGame({ onExit, initialRoomId }: Props) {
   const { user, registerGameInvite, unregisterGameInvite, nanaInviteSoundEnabled } =
     useApp();
   const lang =
@@ -47,6 +66,7 @@ export default function NanaGame({ onExit }: Props) {
     NanaInvitePayload | undefined
   >(undefined);
   const [acceptedInvite, setAcceptedInvite] = useState(false);
+  const [inviteJoinError, setInviteJoinError] = useState<string | null>(null);
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
@@ -64,6 +84,58 @@ export default function NanaGame({ onExit }: Props) {
         });
     });
   }, [user?.id]);
+
+  // ── Invitee auto-join (skip NanaRoomLobby entirely) ───────────────────────
+  // Waits for profileName to resolve (falls back to "Guest" if the profile
+  // fetch above hasn't completed — matches NanaRoomLobby's own behavior,
+  // which has the same race since it also defaults to "Guest").
+  useEffect(() => {
+    if (!initialRoomId || !user?.id) return;
+    let cancelled = false;
+
+    async function autoJoin() {
+      const room = await getNanaRoom(initialRoomId);
+      if (cancelled) return;
+      if (!room) {
+        setInviteJoinError(t("Room not found.", "部屋が見つかりません。"));
+        return;
+      }
+      if (room.status !== "waiting") {
+        setInviteJoinError(
+          t(
+            "This game has already started.",
+            "このゲームはすでに開始しています。",
+          ),
+        );
+        return;
+      }
+
+      try {
+        const { playerIndex } = await joinNanaRoom(
+          initialRoomId,
+          user.id,
+          profileName,
+        );
+        if (cancelled) return;
+        setMyPlayerIndex(playerIndex);
+        setRoomId(initialRoomId); // triggers useRealtimeNana subscription below
+      } catch {
+        if (cancelled) return;
+        setInviteJoinError(
+          t("Failed to join room.", "部屋への参加に失敗しました。"),
+        );
+      }
+    }
+
+    autoJoin();
+    return () => {
+      cancelled = true;
+    };
+    // profileName intentionally excluded — joining with whatever name was
+    // resolved at call time is fine; we don't want to re-join if it
+    // updates moments later.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRoomId, user?.id]);
 
   const isMyTurn = gameState
     ? gameState.currentPlayerIndex === myPlayerIndex
@@ -227,6 +299,39 @@ export default function NanaGame({ onExit }: Props) {
           <button className="btn-secondary" onClick={onExit}>
             {t("Back", "戻る")}
           </button>
+        </div>
+      );
+    }
+
+    // ── Invitee path: skip NanaRoomLobby, show a waiting screen until the
+    //    host's first broadcastGameState arrives (see initialRoomId doc
+    //    comment above for why no separate "started" signal is needed).
+    if (initialRoomId) {
+      if (inviteJoinError) {
+        return (
+          <div
+            className="float-card"
+            style={{ padding: 32, textAlign: "center", borderRadius: "var(--radius)" }}
+          >
+            <p style={{ fontSize: 13, color: "#f87171", marginBottom: 12 }}>
+              {inviteJoinError}
+            </p>
+            <button className="btn-secondary" onClick={onExit}>
+              {t("Back", "戻る")}
+            </button>
+          </div>
+        );
+      }
+      return (
+        <div
+          className="float-card"
+          style={{ padding: 32, textAlign: "center", borderRadius: "var(--radius)" }}
+        >
+          <p style={{ color: "var(--fg-muted)", fontSize: 13 }}>
+            {roomId
+              ? t("Waiting for host to start…", "ホストの開始を待っています…")
+              : t("Joining room…", "部屋に参加中…")}
+          </p>
         </div>
       );
     }

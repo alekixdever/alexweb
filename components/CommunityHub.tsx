@@ -8,6 +8,7 @@
 // [JANE] 2026-06-15 — Added RankingTab (reads arcade_rankings via Supabase)
 // [JANE] 2026-06-15 — Added DiscussionTab (event list → CommentSection)
 // [JANE] 2026-06-16 — Wired AchievementsTab (Eric's component) into Achievements panel
+// [MAX]  2026-06-17 — Added incomingInvite prop threading → ArcadeLobby
 // ⚠️ arcade_rankings table owned by [ERIC] — read-only access here
 import ArcadeLobby from "./arcade/ArcadeLobby";
 import CommentSection from "./CommentSection";
@@ -39,6 +40,11 @@ interface TabConfig {
   icon: React.ReactNode;
   label: string;
   label_ja: string;
+}
+
+interface CommunityHubProps {
+  incomingInvite?: { gameId: "nana" | "snake"; roomId: string } | null;
+  onIncomingInviteConsumed?: () => void;
 }
 
 // ── Tab config ─────────────────────────────────────────────────────────────
@@ -598,7 +604,7 @@ function DiscussionTab() {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
-export default function CommunityHub() {
+export default function CommunityHub({ incomingInvite, onIncomingInviteConsumed }: CommunityHubProps = {}) {
   const [activeTab, setActiveTab] = useState<CommunityTab>("feed");
 
   // lang derived once at component level — passed to AchievementsTab
@@ -606,6 +612,11 @@ export default function CommunityHub() {
     typeof navigator !== "undefined" && navigator.language.startsWith("ja")
       ? "ja"
       : "en";
+
+  // Auto-switch to Arcade tab when an invite arrives
+  useEffect(() => {
+    if (incomingInvite) setActiveTab("arcade");
+  }, [incomingInvite]);
 
   const currentTab = TABS.find((t) => t.id === activeTab)!;
 
@@ -660,7 +671,10 @@ export default function CommunityHub() {
       {activeTab === "feed" ? (
         <Feed />
       ) : activeTab === "arcade" ? (
-        <ArcadeLobby />
+        <ArcadeLobby
+          incomingInvite={incomingInvite}
+          onIncomingInviteConsumed={onIncomingInviteConsumed}
+        />
       ) : activeTab === "ranking" ? (
         <RankingTab />
       ) : activeTab === "discussion" ? (

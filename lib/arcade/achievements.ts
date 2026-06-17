@@ -67,13 +67,11 @@ export const ACHIEVEMENT_META: Record<AchievementKey, AchievementMeta> = {
 };
 
 // ─── Unlock Conditions per Achievement ──────────────────────────────────────
-export const UNLOCK_CONDITIONS: Partial<
-  Record<AchievementKey, UnlockCondition>
-> = {
+export const UNLOCK_CONDITIONS: Partial<Record<AchievementKey, UnlockCondition>> = {
   stroop_master: { gameId: "stroop", minAccuracy: 0.9 },
-  nana_champion: { gameId: "nana", minScore: 1000 },
+  nana_champion: { gameId: "nana",   minScore: 1000 },
   high_accuracy: { minAccuracy: 0.95 },
-  speed_demon: { gameId: "stroop", maxDurationMs: 30_000 },
+  speed_demon:   { gameId: "stroop", maxDurationMs: 30_000 },
 };
 
 // ─── Core: Check if already unlocked ────────────────────────────────────────
@@ -90,40 +88,33 @@ export async function isAchievementUnlocked(
     .maybeSingle();
 
   if (error) {
-    console.error("[Eric][achievements] check error:", error.message);
+    console.error("[Jane][achievements] check error:", error.message);
     return false;
   }
   return !!data;
 }
 
-// ─── Core: Unlock (client-side) ─────────────────────────────────────────────
+// ─── Core: Unlock ────────────────────────────────────────────────────────────
 export async function unlockAchievement(
   userId: string,
   achievementKey: AchievementKey,
 ): Promise<UnlockResult> {
   const supabase = createClient();
 
-  // Step 1: Check first (避免重複 / avoid duplicate)
   const already = await isAchievementUnlocked(userId, achievementKey);
   if (already) {
     return { success: true, alreadyUnlocked: true, achievementKey };
   }
 
-  // Step 2: Insert
+  // ✅ 使用 DB 實際欄位 created_at（非 unlocked_at）
   const { error } = await supabase.from("achievements").insert({
     user_id: userId,
     achievement_key: achievementKey,
-    unlocked_at: new Date().toISOString(),
   });
 
   if (error) {
-    console.error("[Eric][achievements] insert error:", error.message);
-    return {
-      success: false,
-      alreadyUnlocked: false,
-      achievementKey,
-      error: error.message,
-    };
+    console.error("[Jane][achievements] insert error:", error.message);
+    return { success: false, alreadyUnlocked: false, achievementKey, error: error.message };
   }
 
   return { success: true, alreadyUnlocked: false, achievementKey };
@@ -134,7 +125,7 @@ export interface GameSessionResult {
   userId: string;
   gameId: string;
   score: number;
-  accuracy?: number; // 0–1
+  accuracy?: number;   // 0–1
   durationMs?: number;
 }
 
@@ -144,23 +135,13 @@ export async function evaluateAndUnlock(
   const results: UnlockResult[] = [];
   const { userId, gameId, score, accuracy, durationMs } = session;
 
-  // first_game — always check on any session
   results.push(await unlockAchievement(userId, "first_game"));
 
-  for (const [key, cond] of Object.entries(UNLOCK_CONDITIONS) as [
-    AchievementKey,
-    UnlockCondition,
-  ][]) {
+  for (const [key, cond] of Object.entries(UNLOCK_CONDITIONS) as [AchievementKey, UnlockCondition][]) {
     if (cond.gameId && cond.gameId !== gameId) continue;
-    if (cond.minScore !== undefined && score < cond.minScore) continue;
-    if (cond.minAccuracy !== undefined && (accuracy ?? 0) < cond.minAccuracy)
-      continue;
-    if (
-      cond.maxDurationMs !== undefined &&
-      (durationMs ?? Infinity) > cond.maxDurationMs
-    )
-      continue;
-
+    if (cond.minScore     !== undefined && score              < cond.minScore)     continue;
+    if (cond.minAccuracy  !== undefined && (accuracy ?? 0)   < cond.minAccuracy)  continue;
+    if (cond.maxDurationMs !== undefined && (durationMs ?? Infinity) > cond.maxDurationMs) continue;
     results.push(await unlockAchievement(userId, key));
   }
 

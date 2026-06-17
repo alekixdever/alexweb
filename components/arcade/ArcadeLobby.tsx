@@ -16,7 +16,20 @@ interface PersonalStats {
   stroopRank: number | null;
 }
 
-export default function ArcadeLobby() {
+interface Props {
+  /**
+   * Set by page.tsx when an invite the user sent has been accepted (see
+   * RightSidebar's onInviteAccepted, 2026-06-17 Max design). When present,
+   * ArcadeLobby skips the game card grid and jumps straight into the named
+   * game with initialRoomId — the inviter is already the host of that room.
+   */
+  incomingInvite?: { gameId: "nana" | "snake"; roomId: string } | null;
+  /** Called once the invite has been consumed (activeGame set), so
+   *  page.tsx can clear its state and avoid re-triggering on remount. */
+  onIncomingInviteConsumed?: () => void;
+}
+
+export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }: Props = {}) {
   const { user } = useApp();
   const lang =
     typeof navigator !== "undefined" && navigator.language.startsWith("ja")
@@ -24,12 +37,24 @@ export default function ArcadeLobby() {
       : "en";
 
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [stats, setStats] = useState<PersonalStats>({
     stroopBest: null,
     stroopRank: null,
   });
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
+
+  // ── Consume incoming invite ────────────────────────────────────────────
+  // Jumps straight into the game with the inviter's room — skips the
+  // lobby/card grid entirely. Runs whenever a new incomingInvite arrives
+  // (e.g. user sends a second invite while already on the Arcade tab).
+  useEffect(() => {
+    if (!incomingInvite) return;
+    setActiveGame(incomingInvite.gameId);
+    setActiveRoomId(incomingInvite.roomId);
+    onIncomingInviteConsumed?.();
+  }, [incomingInvite, onIncomingInviteConsumed]);
 
   // Fetch personal bests on mount (only if logged in)
   useEffect(() => {
@@ -59,11 +84,27 @@ export default function ArcadeLobby() {
   }
 
   if (activeGame === "nana") {
-    return <NanaGame onExit={() => setActiveGame(null)} />;
+    return (
+      <NanaGame
+        onExit={() => {
+          setActiveGame(null);
+          setActiveRoomId(null);
+        }}
+        initialRoomId={activeRoomId ?? undefined}
+      />
+    );
   }
 
   if (activeGame === "snake") {
-    return <SnakeGame onExit={() => setActiveGame(null)} />;
+    return (
+      <SnakeGame
+        onExit={() => {
+          setActiveGame(null);
+          setActiveRoomId(null);
+        }}
+        initialRoomId={activeRoomId ?? undefined}
+      />
+    );
   }
   // ── Lobby ─────────────────────────────────────────────────────────────────
   return (

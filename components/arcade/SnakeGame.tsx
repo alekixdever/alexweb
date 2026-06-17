@@ -21,6 +21,8 @@ import {
   initGameState,
   getWinner,
 } from "@/lib/arcade/snake-engine";
+import { getSnakeRoom, joinSnakeRoom, getSnakeRoomPlayers } from "@/lib/arcade/snake-room-db";
+import { createClient } from "@/lib/supabase/client";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CELL       = 24;
@@ -32,15 +34,121 @@ const PLAYER_COLORS = ["#a855f7", "#22c55e", "#eab308", "#ec4899"];
 // ── Root Component ────────────────────────────────────────────────────────────
 interface SnakeGameProps {
   onExit?: () => void;
+  /**
+   * Set when arriving via a direct sidebar invite (see ArcadeLobby /
+   * page.tsx incomingInvite wiring, 2026-06-17 Max design). When present,
+   * SnakeGame skips SnakeLobby entirely and joins this room directly —
+   * the inviter's room was already created in the background by
+   * AppContext's startGameInvite, so there's no "create" step here, only
+   * "join as the second+ player."
+   */
+  initialRoomId?: string;
 }
 
-export default function SnakeGame({ onExit }: SnakeGameProps = {}) {
-  const [phase, setPhase]     = useState<"lobby" | "playing" | "over">("lobby");
-  const [roomId, setRoomId]   = useState("");
+export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}) {
+  const [phase, setPhase]     = useState<"lobby" | "joining" | "waiting_for_start" | "playing" | "over">(
+    initialRoomId ? "joining" : "lobby",
+  );
+  const [roomId, setRoomId]   = useState(initialRoomId ?? "");
   const [myIndex, setMyIndex] = useState(0);
   const [playerSlots, setPlayerSlots] = useState<{ userId: string; playerIndex: number }[]>([]);
   const [winnerName, setWinnerName]   = useState<string | null>(null);
+  const [joinError, setJoinError]     = useState<string | null>(null);
   const { user } = useApp();
+  const supabase = createClient();
+
+  // ── Auto-join when initialRoomId is provided (invite flow) ───────────────
+  // Mirrors SnakeLobby's own handleJoin logic, reusing the same db helpers
+  // so there's exactly one implementation of "what joining a room means."
+  useEffect(() => {
+    if (!initialRoomId) return;
+    let cancelled = false;
+
+    async function autoJoin() {
+      if (!user?.id) {
+        setJoinError("Log in to join. / 参加するにはログインしてください。");
+        setPhase("lobby");
+        return;
+      }
+
+      const room = await getSnakeRoom(initialRoomId);
+      if (!room) {
+        if (cancelled) return;
+        setJoinError("Room not found. / 部屋が見つかりません。");
+        setPhase("lobby");
+        return;
+      }
+      if (room.status !== "waiting") {
+        if (cancelled) return;
+        setJoinError(
+          "This game has already started. / このゲームはすでに開始しています。",
+        );
+        setPhase("lobby");
+        return;
+      }
+
+      try {
+        const playerName =
+          user.user_metadata?.display_name ?? user.user_metadata?.name ?? "Guest";
+        const { playerIndex } = await joinSnakeRoom(initialRoomId, user.id, playerName);
+        if (cancelled) return;
+
+        // The inviter (host, playerIndex 0) is already in the room from
+        // the background invite flow — fetch the full player list so the
+        // host's game loop has the complete slot set once it starts.
+        // SnakeLobby's own realtime "room is playing" listener will fire
+        // handleEnterRoom-equivalent on the HOST's screen; this client
+        // (the invitee) just needs its own roomId + playerIndex set to
+        // start rendering once status flips to "playing".
+        setRoomId(initialRoomId);
+        setMyIndex(playerIndex);
+        setPhase("waiting_for_start");
+      } catch {
+        if (cancelled) return;
+        setJoinError("Failed to join room. / 部屋への参加に失敗しました。");
+        setPhase("lobby");
+      }
+    }
+
+    autoJoin();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialRoomId, user?.id]);
+
+  // ── Detect host starting the game (invitee path only) ───────────────────
+  // SnakeLobby has its own realtime listener for "room status -> playing"
+  // that the invitee never mounts, since it skips SnakeLobby entirely.
+  // Without this, the invitee would be stuck on "waiting for host" forever
+  // once the host actually starts. Mirrors SnakeLobby's own listener.
+  useEffect(() => {
+    if (phase !== "waiting_for_start" || !roomId) return;
+
+    const ch = supabase
+      .channel(`snake-lobby:${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "snake_rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        async (payload: { new?: { status?: string } }) => {
+          if (payload.new?.status !== "playing") return;
+          const players = await getSnakeRoomPlayers(roomId);
+          setPlayerSlots(
+            players.map((p) => ({ userId: p.user_id, playerIndex: p.player_index })),
+          );
+          setPhase("playing");
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [phase, roomId]);
 
   function handleEnterRoom(rid: string, pidx: number, slots: { userId: string; playerIndex: number }[]) {
     setRoomId(rid);
@@ -54,7 +162,33 @@ export default function SnakeGame({ onExit }: SnakeGameProps = {}) {
     setPhase("over");
   }
 
-  if (phase === "lobby") return <SnakeLobby onEnterRoom={handleEnterRoom} />;
+  if (phase === "joining" || phase === "waiting_for_start") {
+    return (
+      <div
+        className="float-card"
+        style={{ padding: 32, textAlign: "center", borderRadius: "var(--radius)" }}
+      >
+        <p style={{ color: "var(--fg-muted)", fontSize: 13 }}>
+          {phase === "joining"
+            ? "Joining room… / 部屋に参加中…"
+            : "Waiting for host to start… / ホストの開始を待っています…"}
+        </p>
+      </div>
+    );
+  }
+
+  if (phase === "lobby") {
+    return (
+      <>
+        {joinError && (
+          <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", marginBottom: 8 }}>
+            {joinError}
+          </p>
+        )}
+        <SnakeLobby onEnterRoom={handleEnterRoom} />
+      </>
+    );
+  }
   if (phase === "playing") return (
     <GameCanvas
       roomId={roomId}

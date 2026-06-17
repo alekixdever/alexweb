@@ -1,11 +1,15 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Gamepad2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePresence } from "@/hooks/usePresence";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRealtimeNanaInvite } from "@/hooks/useRealtimeNanaInvite";
+import { useRealtimeSnakeInvite } from "@/hooks/useRealtimeSnakeInvite";
+import { buildNanaInviteAdapter } from "@/lib/arcade/nana-invite-adapter";
+import { buildSnakeInviteAdapter } from "@/lib/arcade/snake-invite-adapter";
 
 interface Contact {
   id: string;
@@ -15,15 +19,30 @@ interface Contact {
 
 interface RightSidebarProps {
   onOpenDM?: (contactId: string) => void;
+  onInviteAccepted?: (gameId: "nana" | "snake", roomId: string) => void;
 }
 
-export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
-  const { isLoggedIn, openAuthModal, logout, user, activeGame, inviteContact } =
-    useApp();
+const INVITABLE_GAMES: { id: "nana" | "snake"; label: string; emoji: string }[] = [
+  { id: "nana", label: "Nana", emoji: "🐱" },
+  { id: "snake", label: "Snake", emoji: "🐍" },
+];
+
+export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSidebarProps = {}) {
+  const {
+    isLoggedIn,
+    openAuthModal,
+    logout,
+    user,
+    pendingInviteFlow,
+    startGameInvite,
+    cancelGameInvite,
+    clearPendingInviteFlow,
+  } = useApp();
   const router = useRouter();
   const { isOnline } = usePresence(user?.id ?? null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [openDropdownContactId, setOpenDropdownContactId] = useState<string | null>(null);
   const supabase = createClient();
 
   const displayName =
@@ -33,7 +52,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     user?.user_metadata?.avatar_url ??
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
-  // Inject pulse animation (client only)
   useEffect(() => {
     if (document.getElementById("dm-pulse-style")) return;
     const style = document.createElement("style");
@@ -71,7 +89,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     fetchContacts();
     fetchUnread();
 
-    // Poll every 5 seconds for new unread messages
     const interval = setInterval(fetchUnread, 5000);
     return () => clearInterval(interval);
   }, [user?.id]);
@@ -89,9 +106,54 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
     onOpenDM?.(contactId);
   }
 
-  // Invite button label — extensible for future games
+  const { broadcastNanaInvite } = useRealtimeNanaInvite({
+    userId: user?.id,
+    onInviteReceived: () => {},
+  });
+  const { broadcastSnakeInvite } = useRealtimeSnakeInvite({
+    userId: user?.id,
+    onInviteReceived: () => {},
+  });
+
+  useEffect(() => {
+    if (pendingInviteFlow?.status === "opponent_joined") {
+      onInviteAccepted?.(pendingInviteFlow.gameId, pendingInviteFlow.roomId);
+      clearPendingInviteFlow();
+    }
+  }, [pendingInviteFlow, onInviteAccepted, clearPendingInviteFlow]);
+
+  useEffect(() => {
+    if (pendingInviteFlow?.status !== "error") return;
+    const timer = setTimeout(() => clearPendingInviteFlow(), 4000);
+    return () => clearTimeout(timer);
+  }, [pendingInviteFlow?.status, clearPendingInviteFlow]);
+
+  const handleSelectGame = useCallback(
+    (gameId: "nana" | "snake", targetUserId: string) => {
+      setOpenDropdownContactId(null);
+      if (!user?.id) return;
+
+      const adapter =
+        gameId === "nana"
+          ? buildNanaInviteAdapter({
+              hostUserId: user.id,
+              hostUserName: displayName,
+              broadcastNanaInvite,
+            })
+          : buildSnakeInviteAdapter({
+              hostUserId: user.id,
+              hostUserName: displayName,
+              broadcastSnakeInvite,
+            });
+
+      startGameInvite(gameId, targetUserId, adapter);
+    },
+    [user?.id, displayName, broadcastNanaInvite, broadcastSnakeInvite, startGameInvite],
+  );
+
   function getInviteLabel(gameId: string) {
     if (gameId === "nana") return "Nana";
+    if (gameId === "snake") return "Snake";
     return gameId.charAt(0).toUpperCase() + gameId.slice(1);
   }
 
@@ -193,7 +255,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
           overflowY: "auto",
         }}
       >
-        {/* Profile card */}
         <div className="float-card" style={{ padding: 16, flexShrink: 0 }}>
           <div
             style={{
@@ -282,7 +343,56 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
           <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
         </div>
 
-        {/* Contacts card */}
+        {pendingInviteFlow && (
+          <div
+            className="float-card"
+            style={{
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+              border:
+                pendingInviteFlow.status === "error"
+                  ? "1px solid #f87171"
+                  : "1px solid var(--accent)",
+            }}
+          >
+            <span style={{ fontSize: 13, color: "var(--fg-primary)", flex: 1 }}>
+              {pendingInviteFlow.status === "creating_room" &&
+                "Setting up room… / 部屋を準備中…"}
+              {pendingInviteFlow.status === "waiting_for_accept" &&
+                "⏳ Waiting for them to accept… / 相手の応答を待っています…"}
+              {pendingInviteFlow.status === "opponent_joined" &&
+                "✅ Joined! Starting… / 参加しました！開始します…"}
+              {pendingInviteFlow.status === "error" &&
+                `⚠️ ${pendingInviteFlow.errorMessage ?? "Invite failed"}`}
+            </span>
+            {pendingInviteFlow.status !== "opponent_joined" &&
+              pendingInviteFlow.status !== "error" && (
+                <button
+                  onClick={cancelGameInvite}
+                  title="Cancel / キャンセル"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: "var(--bg-glass)",
+                    border: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "var(--fg-muted)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+          </div>
+        )}
+
         <div className="float-card" style={{ padding: "14px 0", flex: 1 }}>
           <p className="label-xs" style={{ padding: "0 16px 10px" }}>
             Members / メンバー ({contacts.length})
@@ -305,10 +415,15 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
             <div style={{ display: "flex", flexDirection: "column" }}>
               {contacts.map((contact) => {
                 const online = isOnline(contact.id);
+                const dropdownOpen = openDropdownContactId === contact.id;
+                const inviteInFlightForThisContact =
+                  pendingInviteFlow?.targetUserId === contact.id;
+
                 return (
                   <div
                     key={contact.id}
                     style={{
+                      position: "relative",
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
@@ -322,7 +437,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                       (e.currentTarget.style.background = "transparent")
                     }
                   >
-                    {/* Avatar */}
                     <div
                       onClick={() => handleContactClick(contact.id)}
                       style={{
@@ -360,7 +474,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                       />
                     </div>
 
-                    {/* Name */}
                     <div
                       onClick={() => handleContactClick(contact.id)}
                       style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
@@ -384,7 +497,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                       )}
                     </div>
 
-                    {/* Action buttons */}
                     <div
                       style={{
                         display: "flex",
@@ -393,7 +505,6 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                         flexShrink: 0,
                       }}
                     >
-                      {/* DM button + unread dot */}
                       <div
                         style={{
                           position: "relative",
@@ -435,39 +546,86 @@ export default function RightSidebar({ onOpenDM }: RightSidebarProps = {}) {
                         </button>
                       </div>
 
-                      {/* Game invite button — shown for any active game */}
-                      {activeGame && inviteContact && (
+                      {online && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            inviteContact(contact.id);
+                            if (inviteInFlightForThisContact) return;
+                            setOpenDropdownContactId(dropdownOpen ? null : contact.id);
                           }}
-                          title={`Invite to ${getInviteLabel(activeGame.gameId)}`}
+                          title="Invite to game / ゲームに招待"
+                          disabled={inviteInFlightForThisContact}
                           style={{
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: 600,
-                            padding: "2px 6px",
+                            padding: "3px 7px",
                             borderRadius: 4,
                             border: "1px solid var(--accent)",
-                            background: "rgba(139,92,246,0.12)",
+                            background: dropdownOpen
+                              ? "rgba(139,92,246,0.25)"
+                              : "rgba(139,92,246,0.12)",
                             color: "var(--accent-bright)",
-                            cursor: "pointer",
+                            cursor: inviteInFlightForThisContact ? "default" : "pointer",
                             whiteSpace: "nowrap",
-                            transition: "all 0.15s",
+                            opacity: inviteInFlightForThisContact ? 0.6 : 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(139,92,246,0.25)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(139,92,246,0.12)")
-                          }
                         >
-                          {getInviteLabel(activeGame.gameId)}
+                          {inviteInFlightForThisContact ? "⏳" : <Gamepad2 size={11} />}
                         </button>
                       )}
                     </div>
+
+                    {dropdownOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          right: 16,
+                          zIndex: 20,
+                          background: "var(--bg-card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-sm)",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                          padding: 6,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 2,
+                          minWidth: 120,
+                        }}
+                      >
+                        {INVITABLE_GAMES.map((game) => (
+                          <button
+                            key={game.id}
+                            onClick={() => handleSelectGame(game.id, contact.id)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "6px 10px",
+                              background: "none",
+                              border: "none",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              fontSize: 12,
+                              color: "var(--fg-primary)",
+                              textAlign: "left",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = "var(--bg-glass)")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background = "none")
+                            }
+                          >
+                            <span>{game.emoji}</span>
+                            <span>{game.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
