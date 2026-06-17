@@ -27,6 +27,17 @@ const INVITABLE_GAMES: { id: "nana" | "snake"; label: string; emoji: string }[] 
   { id: "snake", label: "Snake", emoji: "🐍" },
 ];
 
+// Mirrors AppContext's host-side poll timeout (15 attempts × 2000ms).
+// If the host never gets a join, the invitee shouldn't see a stale banner forever.
+const INCOMING_INVITE_TIMEOUT_MS = 30000;
+
+interface IncomingInvitePayload {
+  gameId: "nana" | "snake";
+  roomId: string;
+  fromUserId: string;
+  fromUserName: string;
+}
+
 export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSidebarProps = {}) {
   const {
     isLoggedIn,
@@ -43,6 +54,7 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [openDropdownContactId, setOpenDropdownContactId] = useState<string | null>(null);
+  const [incomingInvite, setIncomingInvite] = useState<IncomingInvitePayload | null>(null);
   const supabase = createClient();
 
   const displayName =
@@ -108,12 +120,35 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
 
   const { broadcastNanaInvite } = useRealtimeNanaInvite({
     userId: user?.id,
-    onInviteReceived: () => {},
+    onInviteReceived: (invite) => {
+      setIncomingInvite({ gameId: "nana", ...invite });
+    },
   });
   const { broadcastSnakeInvite } = useRealtimeSnakeInvite({
     userId: user?.id,
-    onInviteReceived: () => {},
+    onInviteReceived: (invite) => {
+      setIncomingInvite({ gameId: "snake", ...invite });
+    },
   });
+
+  // Auto-dismiss a stale incoming invite if it's never acted on.
+  useEffect(() => {
+    if (!incomingInvite) return;
+    const timer = setTimeout(() => setIncomingInvite(null), INCOMING_INVITE_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [incomingInvite]);
+
+  const handleAcceptIncomingInvite = useCallback(() => {
+    if (!incomingInvite) return;
+    onInviteAccepted?.(incomingInvite.gameId, incomingInvite.roomId);
+    setIncomingInvite(null);
+  }, [incomingInvite, onInviteAccepted]);
+
+  const handleDeclineIncomingInvite = useCallback(() => {
+    // No decline broadcast exists in the protocol — host's own poll will
+    // simply time out after 30s if we never join the room.
+    setIncomingInvite(null);
+  }, []);
 
   useEffect(() => {
     if (pendingInviteFlow?.status === "opponent_joined") {
@@ -131,17 +166,18 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
   const handleSelectGame = useCallback(
     (gameId: "nana" | "snake", targetUserId: string) => {
       setOpenDropdownContactId(null);
-      if (!user?.id) return;
+      const userId = user?.id;
+      if (!userId) return;
 
       const adapter =
         gameId === "nana"
           ? buildNanaInviteAdapter({
-              hostUserId: user.id,
+              hostUserId: userId,
               hostUserName: displayName,
               broadcastNanaInvite,
             })
           : buildSnakeInviteAdapter({
-              hostUserId: user.id,
+              hostUserId: userId,
               hostUserName: displayName,
               broadcastSnakeInvite,
             });
@@ -155,6 +191,10 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
     if (gameId === "nana") return "Nana";
     if (gameId === "snake") return "Snake";
     return gameId.charAt(0).toUpperCase() + gameId.slice(1);
+  }
+
+  function getGameEmoji(gameId: "nana" | "snake") {
+    return INVITABLE_GAMES.find((g) => g.id === gameId)?.emoji ?? "🎮";
   }
 
   if (!isLoggedIn) {
@@ -342,6 +382,62 @@ export default function RightSidebar({ onOpenDM, onInviteAccepted }: RightSideba
           </div>
           <p style={{ fontSize: 11, color: "var(--green)" }}>● Online</p>
         </div>
+
+        {incomingInvite && (
+          <div
+            className="float-card"
+            style={{
+              padding: "12px 14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              flexShrink: 0,
+              border: "1px solid var(--accent)",
+            }}
+          >
+            <span style={{ fontSize: 13, color: "var(--fg-primary)", lineHeight: 1.5 }}>
+              {getGameEmoji(incomingInvite.gameId)}{" "}
+              <strong>{incomingInvite.fromUserName}</strong> invited you to{" "}
+              {getInviteLabel(incomingInvite.gameId)}!
+              <br />
+              <span style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                {incomingInvite.fromUserName} さんが{getInviteLabel(incomingInvite.gameId)}
+                に招待しました
+              </span>
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleAcceptIncomingInvite}
+                className="btn-primary"
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  padding: "6px 10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                Accept / 参加する
+              </button>
+              <button
+                onClick={handleDeclineIncomingInvite}
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-glass)",
+                  color: "var(--fg-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                Decline / 拒否
+              </button>
+            </div>
+          </div>
+        )}
 
         {pendingInviteFlow && (
           <div
