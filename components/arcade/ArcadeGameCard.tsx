@@ -1,7 +1,8 @@
 // components/arcade/ArcadeGameCard.tsx
+import type { GameId } from "@/types/arcade";
 
 interface ArcadeGameCardProps {
-  gameId: "nana" | "stroop";
+  gameId: GameId;
   title: string;
   title_ja: string;
   description: string;
