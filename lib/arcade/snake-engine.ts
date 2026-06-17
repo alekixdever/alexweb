@@ -120,15 +120,20 @@ export function tick(
 ): SnakeGameState {
   if (state.status !== "playing") return state;
 
-  // 1. Resolve each living snake's direction and compute its next head.
-  const moved = state.players.map((snake) => {
-    if (!snake.alive) return snake;
+  // 1. Resolve each living snake's direction, and compute its next head.
+  //    nextHeads is keyed by playerIndex — kept separate from
+  //    SnakePlayerState rather than bolted onto the object, since that
+  //    field doesn't exist on the real type and led to a TS error when
+  //    the array later got treated as plain SnakePlayerState[].
+  const dirByIndex = new Map<number, SnakeDirection>();
+  const nextHeads = new Map<number, SnakePoint>();
+
+  state.players.forEach((snake) => {
+    if (!snake.alive) return;
     const dir = resolveDirection(snake.dir, directionInputs.get(snake.userId));
     directionInputs.delete(snake.userId);
-    const head = nextHead(snake.body[0], dir);
-    return { ...snake, dir, _nextHead: head } as SnakePlayerState & {
-      _nextHead: SnakePoint;
-    };
+    dirByIndex.set(snake.playerIndex, dir);
+    nextHeads.set(snake.playerIndex, nextHead(snake.body[0], dir));
   });
 
   // 2. Determine which snakes eat the food this tick (before collision
@@ -136,9 +141,10 @@ export function tick(
   //    irrelevant for rendering since it's removed, but keeps logic simple).
   let foodEaten = false;
   const willEat = new Set<number>();
-  moved.forEach((snake) => {
+  state.players.forEach((snake) => {
     if (!snake.alive) return;
-    if (samePoint(snake._nextHead, state.food)) {
+    const head = nextHeads.get(snake.playerIndex)!;
+    if (samePoint(head, state.food)) {
       willEat.add(snake.playerIndex);
       foodEaten = true;
     }
@@ -153,12 +159,10 @@ export function tick(
   //      other's old position either, handled by checking against the
   //      OLD body plus the new heads of all snakes for simultaneous
   //      head-on collisions).
-  const newHeads = moved.map((s) => (s.alive ? s._nextHead : null));
-
   const died = new Set<number>();
-  moved.forEach((snake, i) => {
+  state.players.forEach((snake) => {
     if (!snake.alive) return;
-    const head = snake._nextHead;
+    const head = nextHeads.get(snake.playerIndex)!;
 
     if (outOfBounds(head)) {
       died.add(snake.playerIndex);
@@ -180,9 +184,8 @@ export function tick(
     // Collision with other snakes' bodies (their pre-move body, minus
     // their vacating tail unless they're eating) and with any other
     // snake's new head (simultaneous head-on collision).
-    for (let j = 0; j < moved.length; j++) {
-      if (j === i) continue;
-      const other = moved[j];
+    for (const other of state.players) {
+      if (other.playerIndex === snake.playerIndex) continue;
       if (!other.alive) continue;
 
       const otherBody = willEat.has(other.playerIndex)
@@ -193,7 +196,7 @@ export function tick(
         return;
       }
 
-      const otherHead = newHeads[j];
+      const otherHead = nextHeads.get(other.playerIndex);
       if (otherHead && samePoint(otherHead, head)) {
         died.add(snake.playerIndex);
         return;
@@ -202,29 +205,25 @@ export function tick(
   });
 
   // 4. Build new player states: move body, grow if ate, mark dead.
-  const newPlayers: SnakePlayerState[] = moved.map((snake) => {
-    if (!snake.alive) {
-      const { _nextHead, ...rest } = snake as SnakePlayerState & {
-        _nextHead?: SnakePoint;
-      };
-      return rest;
-    }
+  const newPlayers: SnakePlayerState[] = state.players.map((snake) => {
+    if (!snake.alive) return snake;
 
     if (died.has(snake.playerIndex)) {
-      const { _nextHead, ...rest } = snake;
-      return { ...rest, alive: false };
+      return { ...snake, dir: dirByIndex.get(snake.playerIndex) ?? snake.dir, alive: false };
     }
 
+    const dir = dirByIndex.get(snake.playerIndex)!;
+    const head = nextHeads.get(snake.playerIndex)!;
     const ate = willEat.has(snake.playerIndex);
     const newBody = ate
-      ? [snake._nextHead, ...snake.body]
-      : [snake._nextHead, ...snake.body.slice(0, -1)];
+      ? [head, ...snake.body]
+      : [head, ...snake.body.slice(0, -1)];
 
-    const { _nextHead, ...rest } = snake;
     return {
-      ...rest,
+      ...snake,
+      dir,
       body: newBody,
-      score: ate ? rest.score + 1 : rest.score,
+      score: ate ? snake.score + 1 : snake.score,
     };
   });
 
