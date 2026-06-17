@@ -3,7 +3,7 @@
 
 // ── Shared ────────────────────────────────────────────────────────────────
 
-export type GameId = "nana" | "stroop";
+export type GameId = "nana" | "stroop" | "snake";
 
 // Achievement Types
 export type AchievementKey =
