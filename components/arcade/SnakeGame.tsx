@@ -66,11 +66,12 @@ export default function SnakeGame({
   const supabase = createClient();
 
   // ── Auto-join when initialRoomId is provided (invite flow) ───────────────
-  // Mirrors SnakeLobby's own handleJoin logic, reusing the same db helpers
-  // so there's exactly one implementation of "what joining a room means."
   useEffect(() => {
     if (!initialRoomId) return;
     let cancelled = false;
+
+    // Narrow once here — every usage below is guaranteed string
+    const roomIdStr: string = initialRoomId;
 
     async function autoJoin() {
       if (!user?.id) {
@@ -79,8 +80,7 @@ export default function SnakeGame({
         return;
       }
 
-      // After
-      const room = await getSnakeRoom(initialRoomId!);
+      const room = await getSnakeRoom(roomIdStr);
       if (!room) {
         if (cancelled) return;
         setJoinError("Room not found. / 部屋が見つかりません。");
@@ -102,20 +102,13 @@ export default function SnakeGame({
           user.user_metadata?.name ??
           "Guest";
         const { playerIndex } = await joinSnakeRoom(
-          initialRoomId,
+          roomIdStr,
           user.id,
           playerName,
         );
         if (cancelled) return;
 
-        // The inviter (host, playerIndex 0) is already in the room from
-        // the background invite flow — fetch the full player list so the
-        // host's game loop has the complete slot set once it starts.
-        // SnakeLobby's own realtime "room is playing" listener will fire
-        // handleEnterRoom-equivalent on the HOST's screen; this client
-        // (the invitee) just needs its own roomId + playerIndex set to
-        // start rendering once status flips to "playing".
-        setRoomId(initialRoomId);
+        setRoomId(roomIdStr);
         setMyIndex(playerIndex);
         setPhase("waiting_for_start");
       } catch {
@@ -132,10 +125,6 @@ export default function SnakeGame({
   }, [initialRoomId, user?.id]);
 
   // ── Detect host starting the game (invitee path only) ───────────────────
-  // SnakeLobby has its own realtime listener for "room status -> playing"
-  // that the invitee never mounts, since it skips SnakeLobby entirely.
-  // Without this, the invitee would be stuck on "waiting for host" forever
-  // once the host actually starts. Mirrors SnakeLobby's own listener.
   useEffect(() => {
     if (phase !== "waiting_for_start" || !roomId) return;
 
@@ -263,10 +252,9 @@ function GameCanvas({
   const isHost = playerIndex === 0;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gsRef = useRef<SnakeGameState | null>(null); // host: authoritative; client: from broadcast
+  const gsRef = useRef<SnakeGameState | null>(null);
   const loopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirBuf = useRef<SnakeDirection | null>(null);
-  // Host: per-player pending direction from INPUT events
   const inputBuf = useRef<Map<string, SnakeDirection>>(new Map());
 
   const [countdown, setCountdown] = useState<number | null>(3);
@@ -290,7 +278,6 @@ function GameCanvas({
     userName,
     playerIndex,
     isHost,
-    // Non-host: receive full game state from host
     onGameState: (state) => {
       if (isHost) return;
       gsRef.current = state;
@@ -302,7 +289,6 @@ function GameCanvas({
         onGameOver(winner);
       }
     },
-    // Host: receive direction inputs from non-host clients
     onInput: (uid, dir) => {
       if (!isHost) return;
       inputBuf.current.set(uid, dir);
@@ -317,7 +303,7 @@ function GameCanvas({
   useEffect(() => {
     broadcastPlayerJoined();
 
-    if (!isHost) return; // only host runs loop
+    if (!isHost) return;
 
     let n = 3;
     setCountdown(n);
@@ -356,9 +342,6 @@ function GameCanvas({
     const gs = gsRef.current;
     if (!gs) return;
 
-    // Host's own direction comes from dirBuf (keyboard/d-pad), merged into
-    // the same inputBuf the engine consumes — host is just another player
-    // from the engine's point of view.
     if (dirBuf.current) {
       inputBuf.current.set(userId, dirBuf.current);
       dirBuf.current = null;
@@ -392,18 +375,15 @@ function GameCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Background
     ctx.fillStyle = "#0f0f14";
     ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
 
-    // Grid dots
     ctx.fillStyle = "rgba(255,255,255,0.04)";
     for (let x = 0; x < GRID; x++)
       for (let y = 0; y < GRID; y++) {
         ctx.fillRect(x * CELL + CELL / 2 - 1, y * CELL + CELL / 2 - 1, 2, 2);
       }
 
-    // Snakes
     gs.players.forEach((snake) => {
       const color = PLAYER_COLORS[snake.playerIndex] ?? "#fff";
       ctx.fillStyle = snake.alive ? color : "rgba(255,255,255,0.12)";
@@ -425,7 +405,6 @@ function GameCanvas({
     });
     ctx.shadowBlur = 0;
 
-    // Food
     ctx.fillStyle = "#f97316";
     ctx.shadowColor = "#f97316";
     ctx.shadowBlur = 14;
