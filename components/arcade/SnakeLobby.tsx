@@ -42,7 +42,16 @@ export default function SnakeLobby({ onEnterRoom }: Props) {
   const [error, setError]         = useState<string | null>(null);
   const [myIndex, setMyIndex]     = useState<number | null>(null);
   const [isHost, setIsHost]       = useState(false);
-  const [roomStatus, setRoomStatus] = useState<string>("waiting");
+
+  // ── fetchPlayers hoisted above useEffect to avoid "accessed before declared" ──
+  async function fetchPlayers(rid: string) {
+    const { data } = await supabase
+      .from("snake_room_players")
+      .select("*")
+      .eq("room_id", rid)
+      .order("player_index");
+    if (data) setPlayers(data);
+  }
 
   // ── Realtime: watch room players ──────────────────────────────────────────
   useEffect(() => {
@@ -55,45 +64,32 @@ export default function SnakeLobby({ onEnterRoom }: Props) {
         schema: "public",
         table: "snake_room_players",
         filter: `room_id=eq.${roomId}`,
-      }, () => { fetchPlayers(); })
+      }, () => { fetchPlayers(roomId); })
       .on("postgres_changes", {
         event: "UPDATE",
         schema: "public",
         table: "snake_rooms",
         filter: `id=eq.${roomId}`,
-      }, async (payload) => {
-        if (payload.new?.status === "playing") {
-          // Re-fetch fresh from DB instead of relying on the `players`
-          // closure captured when this effect last ran — a player could
-          // have joined between that snapshot and this status flip.
-          const { data } = await supabase
-            .from("snake_room_players")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("player_index");
-          const freshPlayers = data ?? playersRef.current;
-          onEnterRoom(
-            roomId,
-            myIndex ?? 0,
-            freshPlayers.map((p) => ({ userId: p.user_id, playerIndex: p.player_index })),
-          );
-        }
+      }, async (payload: { new?: { status?: string } }) => {
+        if (payload.new?.status !== "playing") return;
+        const { data } = await supabase
+          .from("snake_room_players")
+          .select("*")
+          .eq("room_id", roomId)
+          .order("player_index");
+        const freshPlayers = data ?? playersRef.current;
+        onEnterRoom(
+          roomId,
+          myIndex ?? 0,
+          freshPlayers.map((p) => ({ userId: p.user_id, playerIndex: p.player_index })),
+        );
       })
       .subscribe();
 
-    fetchPlayers();
+    fetchPlayers(roomId);
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
-
-  async function fetchPlayers() {
-    const { data } = await supabase
-      .from("snake_room_players")
-      .select("*")
-      .eq("room_id", roomId)
-      .order("player_index");
-    if (data) setPlayers(data);
-  }
 
   // ── Create room ───────────────────────────────────────────────────────────
   async function handleCreate() {
@@ -154,7 +150,7 @@ export default function SnakeLobby({ onEnterRoom }: Props) {
       return;
     }
 
-    const usedIndices = (existing ?? []).map((p: any) => p.player_index);
+    const usedIndices = (existing ?? []).map((p: { player_index: number }) => p.player_index);
     const nextIndex   = [0, 1, 2, 3].find((i) => !usedIndices.includes(i)) ?? 1;
 
     const { error: joinErr } = await supabase.from("snake_room_players").insert({
@@ -169,7 +165,7 @@ export default function SnakeLobby({ onEnterRoom }: Props) {
     setRoomId(code);
     setMyIndex(nextIndex);
     setIsHost(false);
-    setMode("create"); // reuse waiting UI
+    setMode("create");
     setLoading(false);
   }
 

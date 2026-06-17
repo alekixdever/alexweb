@@ -86,15 +86,15 @@ export default function NanaGame({ onExit, initialRoomId }: Props) {
   }, [user?.id]);
 
   // ── Invitee auto-join (skip NanaRoomLobby entirely) ───────────────────────
-  // Waits for profileName to resolve (falls back to "Guest" if the profile
-  // fetch above hasn't completed — matches NanaRoomLobby's own behavior,
-  // which has the same race since it also defaults to "Guest").
   useEffect(() => {
     if (!initialRoomId || !user?.id) return;
     let cancelled = false;
 
+    // Narrow once — every usage below is guaranteed string
+    const roomIdStr: string = initialRoomId;
+
     async function autoJoin() {
-      const room = await getNanaRoom(initialRoomId);
+      const room = await getNanaRoom(roomIdStr);
       if (cancelled) return;
       if (!room) {
         setInviteJoinError(t("Room not found.", "部屋が見つかりません。"));
@@ -112,13 +112,13 @@ export default function NanaGame({ onExit, initialRoomId }: Props) {
 
       try {
         const { playerIndex } = await joinNanaRoom(
-          initialRoomId,
-          user.id,
+          roomIdStr,
+          user!.id,
           profileName,
         );
         if (cancelled) return;
         setMyPlayerIndex(playerIndex);
-        setRoomId(initialRoomId); // triggers useRealtimeNana subscription below
+        setRoomId(roomIdStr); // triggers useRealtimeNana subscription below
       } catch {
         if (cancelled) return;
         setInviteJoinError(

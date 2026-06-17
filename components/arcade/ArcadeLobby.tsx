@@ -1,7 +1,7 @@
 // components/arcade/ArcadeLobby.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import ArcadeGameCard from "./ArcadeGameCard";
 import StroopGame from "./stroop/StroopGame";
@@ -36,8 +36,8 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
       ? "ja"
       : "en";
 
-  const [activeGame, setActiveGame] = useState<ActiveGame>(null);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [manualGame, setManualGame] = useState<ActiveGame>(null);
+  const [manualRoomId, setManualRoomId] = useState<string | null>(null);
   const [stats, setStats] = useState<PersonalStats>({
     stroopBest: null,
     stroopRank: null,
@@ -46,15 +46,22 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
   // ── Consume incoming invite ────────────────────────────────────────────
-  // Jumps straight into the game with the inviter's room — skips the
-  // lobby/card grid entirely. Runs whenever a new incomingInvite arrives
-  // (e.g. user sends a second invite while already on the Arcade tab).
-  useEffect(() => {
-    if (!incomingInvite) return;
-    setActiveGame(incomingInvite.gameId);
-    setActiveRoomId(incomingInvite.roomId);
-    onIncomingInviteConsumed?.();
-  }, [incomingInvite, onIncomingInviteConsumed]);
+  // Derived: incomingInvite takes priority over manual selection.
+  // onIncomingInviteConsumed is called in render (via ref) to avoid
+  // setState-in-effect lint warning while still clearing page.tsx state.
+  const consumedRef = useRef(false);
+  const activeGame: ActiveGame = incomingInvite ? incomingInvite.gameId : manualGame;
+  const activeRoomId: string | null = incomingInvite ? incomingInvite.roomId : manualRoomId;
+
+  if (incomingInvite && !consumedRef.current) {
+    consumedRef.current = true;
+    // Schedule the callback for after render to avoid calling setState
+    // (in parent) during this component's render cycle.
+    setTimeout(() => onIncomingInviteConsumed?.(), 0);
+  }
+  if (!incomingInvite) {
+    consumedRef.current = false;
+  }
 
   // Fetch personal bests on mount (only if logged in)
   useEffect(() => {
@@ -80,15 +87,15 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
 
   // ── Active game screens ───────────────────────────────────────────────────
   if (activeGame === "stroop") {
-    return <StroopGame onExit={() => setActiveGame(null)} />;
+    return <StroopGame onExit={() => setManualGame(null)} />;
   }
 
   if (activeGame === "nana") {
     return (
       <NanaGame
         onExit={() => {
-          setActiveGame(null);
-          setActiveRoomId(null);
+          setManualGame(null);
+          setManualRoomId(null);
         }}
         initialRoomId={activeRoomId ?? undefined}
       />
@@ -99,8 +106,8 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
     return (
       <SnakeGame
         onExit={() => {
-          setActiveGame(null);
-          setActiveRoomId(null);
+          setManualGame(null);
+          setManualRoomId(null);
         }}
         initialRoomId={activeRoomId ?? undefined}
       />
@@ -141,7 +148,7 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
           icon="🎨"
           personalBest={stats.stroopBest}
           globalRank={stats.stroopRank}
-          onPlay={() => setActiveGame("stroop")}
+          onPlay={() => setManualGame("stroop")}
           lang={lang}
         />
 
@@ -154,7 +161,7 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
           icon="🃏"
           personalBest={null}
           globalRank={null}
-          onPlay={() => setActiveGame("nana")}
+          onPlay={() => setManualGame("nana")}
           lang={lang}
         />
 
@@ -167,7 +174,7 @@ export default function ArcadeLobby({ incomingInvite, onIncomingInviteConsumed }
           icon="🐍"
           personalBest={null}
           globalRank={null}
-          onPlay={() => setActiveGame("snake")}
+          onPlay={() => setManualGame("snake")}
           lang={lang}
         />
       </div>

@@ -257,7 +257,8 @@ function GameCanvas({
   const dirBuf = useRef<SnakeDirection | null>(null);
   const inputBuf = useRef<Map<string, SnakeDirection>>(new Map());
 
-  const [countdown, setCountdown] = useState<number | null>(3);
+  // Start at 3; the host effect counts down via setInterval (never synchronously in effect body)
+  const [countdown, setCountdown] = useState<number | null>(isHost ? 3 : null);
   const [scores, setScores] = useState<number[]>([0, 0, 0, 0]);
   const [aliveMask, setAliveMask] = useState<boolean[]>([
     true,
@@ -306,7 +307,6 @@ function GameCanvas({
     if (!isHost) return;
 
     let n = 3;
-    setCountdown(n);
     const iv = setInterval(() => {
       n--;
       if (n <= 0) {
@@ -329,15 +329,7 @@ function GameCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Host game loop ─────────────────────────────────────────────────────────
-  const loop = useCallback(() => {
-    const gs = gsRef.current;
-    if (!gs || gs.status !== "playing") return;
-    runTick();
-    loopRef.current = setTimeout(loop, gsRef.current?.tick ?? TICK_START);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // ── Host tick ─────────────────────────────────────────────────────────────
   function runTick() {
     const gs = gsRef.current;
     if (!gs) return;
@@ -367,6 +359,15 @@ function GameCanvas({
       );
     }
   }
+
+  // ── Host game loop ─────────────────────────────────────────────────────────
+  const loop = useCallback(() => {
+    const gs = gsRef.current;
+    if (!gs || gs.status !== "playing") return;
+    runTick();
+    loopRef.current = setTimeout(loop, gsRef.current?.tick ?? TICK_START);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Draw ──────────────────────────────────────────────────────────────────
   function draw(gs: SnakeGameState) {
@@ -493,8 +494,9 @@ function GameCanvas({
       >
         {PLAYER_COLORS.map((c, i) => {
           const hasPlayer =
-            gsRef.current?.players.some((p) => p.playerIndex === i) ??
-            i === playerIndex;
+            playerSlots.length > 0
+              ? playerSlots.some((p) => p.playerIndex === i)
+              : i === playerIndex;
           if (!hasPlayer) return null;
           return (
             <div
