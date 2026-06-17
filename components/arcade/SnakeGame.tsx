@@ -21,15 +21,18 @@ import {
   initGameState,
   getWinner,
 } from "@/lib/arcade/snake-engine";
-import { getSnakeRoom, joinSnakeRoom, getSnakeRoomPlayers } from "@/lib/arcade/snake-room-db";
+import {
+  getSnakeRoom,
+  joinSnakeRoom,
+  getSnakeRoomPlayers,
+} from "@/lib/arcade/snake-room-db";
 import { createClient } from "@/lib/supabase/client";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const CELL       = 24;
-const CANVAS_PX  = GRID * CELL; // 480px
+const CELL = 24;
+const CANVAS_PX = GRID * CELL; // 480px
 
 const PLAYER_COLORS = ["#a855f7", "#22c55e", "#eab308", "#ec4899"];
-
 
 // ── Root Component ────────────────────────────────────────────────────────────
 interface SnakeGameProps {
@@ -45,15 +48,20 @@ interface SnakeGameProps {
   initialRoomId?: string;
 }
 
-export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}) {
-  const [phase, setPhase]     = useState<"lobby" | "joining" | "waiting_for_start" | "playing" | "over">(
-    initialRoomId ? "joining" : "lobby",
-  );
-  const [roomId, setRoomId]   = useState(initialRoomId ?? "");
+export default function SnakeGame({
+  onExit,
+  initialRoomId,
+}: SnakeGameProps = {}) {
+  const [phase, setPhase] = useState<
+    "lobby" | "joining" | "waiting_for_start" | "playing" | "over"
+  >(initialRoomId ? "joining" : "lobby");
+  const [roomId, setRoomId] = useState(initialRoomId ?? "");
   const [myIndex, setMyIndex] = useState(0);
-  const [playerSlots, setPlayerSlots] = useState<{ userId: string; playerIndex: number }[]>([]);
-  const [winnerName, setWinnerName]   = useState<string | null>(null);
-  const [joinError, setJoinError]     = useState<string | null>(null);
+  const [playerSlots, setPlayerSlots] = useState<
+    { userId: string; playerIndex: number }[]
+  >([]);
+  const [winnerName, setWinnerName] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const { user } = useApp();
   const supabase = createClient();
 
@@ -71,7 +79,8 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
         return;
       }
 
-      const room = await getSnakeRoom(initialRoomId);
+      // After
+      const room = await getSnakeRoom(initialRoomId!);
       if (!room) {
         if (cancelled) return;
         setJoinError("Room not found. / 部屋が見つかりません。");
@@ -89,8 +98,14 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
 
       try {
         const playerName =
-          user.user_metadata?.display_name ?? user.user_metadata?.name ?? "Guest";
-        const { playerIndex } = await joinSnakeRoom(initialRoomId, user.id, playerName);
+          user.user_metadata?.display_name ??
+          user.user_metadata?.name ??
+          "Guest";
+        const { playerIndex } = await joinSnakeRoom(
+          initialRoomId,
+          user.id,
+          playerName,
+        );
         if (cancelled) return;
 
         // The inviter (host, playerIndex 0) is already in the room from
@@ -138,7 +153,10 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
           if (payload.new?.status !== "playing") return;
           const players = await getSnakeRoomPlayers(roomId);
           setPlayerSlots(
-            players.map((p) => ({ userId: p.user_id, playerIndex: p.player_index })),
+            players.map((p) => ({
+              userId: p.user_id,
+              playerIndex: p.player_index,
+            })),
           );
           setPhase("playing");
         },
@@ -150,7 +168,11 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
     };
   }, [phase, roomId]);
 
-  function handleEnterRoom(rid: string, pidx: number, slots: { userId: string; playerIndex: number }[]) {
+  function handleEnterRoom(
+    rid: string,
+    pidx: number,
+    slots: { userId: string; playerIndex: number }[],
+  ) {
     setRoomId(rid);
     setMyIndex(pidx);
     setPlayerSlots(slots);
@@ -166,7 +188,11 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
     return (
       <div
         className="float-card"
-        style={{ padding: 32, textAlign: "center", borderRadius: "var(--radius)" }}
+        style={{
+          padding: 32,
+          textAlign: "center",
+          borderRadius: "var(--radius)",
+        }}
       >
         <p style={{ color: "var(--fg-muted)", fontSize: 13 }}>
           {phase === "joining"
@@ -181,7 +207,14 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
     return (
       <>
         {joinError && (
-          <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", marginBottom: 8 }}>
+          <p
+            style={{
+              fontSize: 12,
+              color: "#f87171",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
+          >
             {joinError}
           </p>
         )}
@@ -189,17 +222,24 @@ export default function SnakeGame({ onExit, initialRoomId }: SnakeGameProps = {}
       </>
     );
   }
-  if (phase === "playing") return (
-    <GameCanvas
-      roomId={roomId}
-      playerIndex={myIndex}
-      userId={user?.id ?? ""}
-      userName={user?.user_metadata?.display_name ?? `Player ${myIndex + 1}`}
-      playerSlots={playerSlots}
-      onGameOver={handleGameOver}
+  if (phase === "playing")
+    return (
+      <GameCanvas
+        roomId={roomId}
+        playerIndex={myIndex}
+        userId={user?.id ?? ""}
+        userName={user?.user_metadata?.display_name ?? `Player ${myIndex + 1}`}
+        playerSlots={playerSlots}
+        onGameOver={handleGameOver}
+      />
+    );
+  return (
+    <GameOver
+      winner={winnerName}
+      onReplay={() => setPhase("lobby")}
+      onExit={onExit}
     />
   );
-  return <GameOver winner={winnerName} onReplay={() => setPhase("lobby")} onExit={onExit} />;
 }
 
 // ── Game Canvas ───────────────────────────────────────────────────────────────
@@ -212,49 +252,66 @@ interface GameCanvasProps {
   onGameOver: (winner: string | null) => void;
 }
 
-function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGameOver }: GameCanvasProps) {
+function GameCanvas({
+  roomId,
+  playerIndex,
+  userId,
+  userName,
+  playerSlots,
+  onGameOver,
+}: GameCanvasProps) {
   const isHost = playerIndex === 0;
 
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const gsRef      = useRef<SnakeGameState | null>(null);   // host: authoritative; client: from broadcast
-  const loopRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dirBuf     = useRef<SnakeDirection | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gsRef = useRef<SnakeGameState | null>(null); // host: authoritative; client: from broadcast
+  const loopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirBuf = useRef<SnakeDirection | null>(null);
   // Host: per-player pending direction from INPUT events
-  const inputBuf   = useRef<Map<string, SnakeDirection>>(new Map());
+  const inputBuf = useRef<Map<string, SnakeDirection>>(new Map());
 
   const [countdown, setCountdown] = useState<number | null>(3);
-  const [scores, setScores]       = useState<number[]>([0, 0, 0, 0]);
-  const [aliveMask, setAliveMask] = useState<boolean[]>([true, true, true, true]);
+  const [scores, setScores] = useState<number[]>([0, 0, 0, 0]);
+  const [aliveMask, setAliveMask] = useState<boolean[]>([
+    true,
+    true,
+    true,
+    true,
+  ]);
 
   // ── Realtime ───────────────────────────────────────────────────────────────
-  const { broadcastGameState, broadcastInput, broadcastPlayerJoined, broadcastGameOver } =
-    useRealtimeSnake({
-      roomId,
-      userId,
-      userName,
-      playerIndex,
-      isHost,
-      // Non-host: receive full game state from host
-      onGameState: (state) => {
-        if (isHost) return;
-        gsRef.current = state;
-        draw(state);
-        syncUI(state);
-        if (state.status === "over") {
-          const winner = state.winnerIndex !== null
-            ? `Player ${state.winnerIndex + 1}`
-            : null;
-          onGameOver(winner);
-        }
-      },
-      // Host: receive direction inputs from non-host clients
-      onInput: (uid, dir) => {
-        if (!isHost) return;
-        inputBuf.current.set(uid, dir);
-      },
-      onPlayerJoined: () => {},
-      onGameOver: (_, wName) => { onGameOver(wName); },
-    });
+  const {
+    broadcastGameState,
+    broadcastInput,
+    broadcastPlayerJoined,
+    broadcastGameOver,
+  } = useRealtimeSnake({
+    roomId,
+    userId,
+    userName,
+    playerIndex,
+    isHost,
+    // Non-host: receive full game state from host
+    onGameState: (state) => {
+      if (isHost) return;
+      gsRef.current = state;
+      draw(state);
+      syncUI(state);
+      if (state.status === "over") {
+        const winner =
+          state.winnerIndex !== null ? `Player ${state.winnerIndex + 1}` : null;
+        onGameOver(winner);
+      }
+    },
+    // Host: receive direction inputs from non-host clients
+    onInput: (uid, dir) => {
+      if (!isHost) return;
+      inputBuf.current.set(uid, dir);
+    },
+    onPlayerJoined: () => {},
+    onGameOver: (_, wName) => {
+      onGameOver(wName);
+    },
+  });
 
   // ── Init countdown ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -269,7 +326,9 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
       if (n <= 0) {
         clearInterval(iv);
         setCountdown(null);
-        const state = initGameState(playerSlots.length > 0 ? playerSlots : [{ userId, playerIndex }]);
+        const state = initGameState(
+          playerSlots.length > 0 ? playerSlots : [{ userId, playerIndex }],
+        );
         gsRef.current = { ...state, status: "playing" };
         loop();
       } else {
@@ -339,21 +398,28 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
 
     // Grid dots
     ctx.fillStyle = "rgba(255,255,255,0.04)";
-    for (let x = 0; x < GRID; x++) for (let y = 0; y < GRID; y++) {
-      ctx.fillRect(x * CELL + CELL / 2 - 1, y * CELL + CELL / 2 - 1, 2, 2);
-    }
+    for (let x = 0; x < GRID; x++)
+      for (let y = 0; y < GRID; y++) {
+        ctx.fillRect(x * CELL + CELL / 2 - 1, y * CELL + CELL / 2 - 1, 2, 2);
+      }
 
     // Snakes
     gs.players.forEach((snake) => {
       const color = PLAYER_COLORS[snake.playerIndex] ?? "#fff";
       ctx.fillStyle = snake.alive ? color : "rgba(255,255,255,0.12)";
       ctx.shadowColor = snake.alive ? color : "transparent";
-      ctx.shadowBlur  = snake.alive ? 8 : 0;
+      ctx.shadowBlur = snake.alive ? 8 : 0;
       snake.body.forEach((p, i) => {
         const size = i === 0 ? CELL - 2 : CELL - 4;
-        const off  = i === 0 ? 1 : 2;
+        const off = i === 0 ? 1 : 2;
         ctx.beginPath();
-        ctx.roundRect(p.x * CELL + off, p.y * CELL + off, size, size, i === 0 ? 6 : 4);
+        ctx.roundRect(
+          p.x * CELL + off,
+          p.y * CELL + off,
+          size,
+          size,
+          i === 0 ? 6 : 4,
+        );
         ctx.fill();
       });
     });
@@ -362,9 +428,15 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
     // Food
     ctx.fillStyle = "#f97316";
     ctx.shadowColor = "#f97316";
-    ctx.shadowBlur  = 14;
+    ctx.shadowBlur = 14;
     ctx.beginPath();
-    ctx.arc(gs.food.x * CELL + CELL / 2, gs.food.y * CELL + CELL / 2, CELL / 2 - 3, 0, Math.PI * 2);
+    ctx.arc(
+      gs.food.x * CELL + CELL / 2,
+      gs.food.y * CELL + CELL / 2,
+      CELL / 2 - 3,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
     ctx.shadowBlur = 0;
   }
@@ -372,7 +444,10 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
   function syncUI(gs: SnakeGameState) {
     const s = [0, 0, 0, 0];
     const a = [false, false, false, false];
-    gs.players.forEach((p) => { s[p.playerIndex] = p.score; a[p.playerIndex] = p.alive; });
+    gs.players.forEach((p) => {
+      s[p.playerIndex] = p.score;
+      a[p.playerIndex] = p.alive;
+    });
     setScores([...s]);
     setAliveMask([...a]);
   }
@@ -380,9 +455,18 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
   // ── Keyboard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const MAP: Record<string, SnakeDirection> = {
-      ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
-      w: "UP", s: "DOWN", a: "LEFT", d: "RIGHT",
-      W: "UP", S: "DOWN", A: "LEFT", D: "RIGHT",
+      ArrowUp: "UP",
+      ArrowDown: "DOWN",
+      ArrowLeft: "LEFT",
+      ArrowRight: "RIGHT",
+      w: "UP",
+      s: "DOWN",
+      a: "LEFT",
+      d: "RIGHT",
+      W: "UP",
+      S: "DOWN",
+      A: "LEFT",
+      D: "RIGHT",
     };
     const onKey = (e: KeyboardEvent) => {
       const d = MAP[e.key];
@@ -400,31 +484,76 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
   }, [isHost, broadcastInput]);
 
   const dpad = (d: SnakeDirection) => () => {
-    if (isHost) { dirBuf.current = d; }
-    else { dirBuf.current = d; broadcastInput(d); }
+    if (isHost) {
+      dirBuf.current = d;
+    } else {
+      dirBuf.current = d;
+      broadcastInput(d);
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: 16 }}>
-
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 16,
+        padding: 16,
+      }}
+    >
       {/* Score bar */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
         {PLAYER_COLORS.map((c, i) => {
-          const hasPlayer = gsRef.current?.players.some((p) => p.playerIndex === i) ?? i === playerIndex;
+          const hasPlayer =
+            gsRef.current?.players.some((p) => p.playerIndex === i) ??
+            i === playerIndex;
           if (!hasPlayer) return null;
           return (
-            <div key={i} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "var(--bg-glass)", border: `1px solid ${c}40`,
-              borderRadius: "var(--radius-sm)", padding: "4px 10px",
-              opacity: aliveMask[i] ? 1 : 0.35,
-              transition: "opacity 0.3s",
-            }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: c, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: c, fontWeight: 700 }}>{scores[i]}</span>
-              {i === playerIndex && <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>YOU</span>}
-              {!aliveMask[i] && <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>💀</span>}
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--bg-glass)",
+                border: `1px solid ${c}40`,
+                borderRadius: "var(--radius-sm)",
+                padding: "4px 10px",
+                opacity: aliveMask[i] ? 1 : 0.35,
+                transition: "opacity 0.3s",
+              }}
+            >
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 3,
+                  background: c,
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 12, color: c, fontWeight: 700 }}>
+                {scores[i]}
+              </span>
+              {i === playerIndex && (
+                <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>
+                  YOU
+                </span>
+              )}
+              {!aliveMask[i] && (
+                <span style={{ fontSize: 10, color: "var(--fg-muted)" }}>
+                  💀
+                </span>
+              )}
             </div>
           );
         })}
@@ -446,25 +575,43 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
         />
         {countdown !== null && (
           <div style={overlayStyle}>
-            <span style={{ fontSize: 80, fontWeight: 900, color: "#fff", lineHeight: 1,
-              textShadow: "0 0 40px var(--accent)" }}>
+            <span
+              style={{
+                fontSize: 80,
+                fontWeight: 900,
+                color: "#fff",
+                lineHeight: 1,
+                textShadow: "0 0 40px var(--accent)",
+              }}
+            >
               {countdown}
             </span>
-            <span style={{ fontSize: 14, color: "var(--fg-muted)", marginTop: 8 }}>
-              {isHost ? "You are HOST / ホスト" : "Waiting for host... / ホスト待機中"}
+            <span
+              style={{ fontSize: 14, color: "var(--fg-muted)", marginTop: 8 }}
+            >
+              {isHost
+                ? "You are HOST / ホスト"
+                : "Waiting for host... / ホスト待機中"}
             </span>
           </div>
         )}
       </div>
 
       {/* Mobile D-pad */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,44px)", gridTemplateRows: "repeat(3,44px)", gap: 4 }}>
-        {(["UP","LEFT","RIGHT","DOWN"] as const).map((d) => {
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3,44px)",
+          gridTemplateRows: "repeat(3,44px)",
+          gap: 4,
+        }}
+      >
+        {(["UP", "LEFT", "RIGHT", "DOWN"] as const).map((d) => {
           const pos: Record<string, { gridColumn: number; gridRow: number }> = {
-            UP:    { gridColumn: 2, gridRow: 1 },
-            LEFT:  { gridColumn: 1, gridRow: 2 },
+            UP: { gridColumn: 2, gridRow: 1 },
+            LEFT: { gridColumn: 1, gridRow: 2 },
             RIGHT: { gridColumn: 3, gridRow: 2 },
-            DOWN:  { gridColumn: 2, gridRow: 3 },
+            DOWN: { gridColumn: 2, gridRow: 3 },
           };
           return (
             <button key={d} onClick={dpad(d)} style={{ ...dpadBtn, ...pos[d] }}>
@@ -475,9 +622,14 @@ function GameCanvas({ roomId, playerIndex, userId, userName, playerSlots, onGame
       </div>
 
       <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-        Room: <span style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>{roomId}</span>
+        Room:{" "}
+        <span style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>
+          {roomId}
+        </span>
         {" · "}Arrow keys / WASD
-        {isHost && <span style={{ color: "var(--accent)", marginLeft: 6 }}>● HOST</span>}
+        {isHost && (
+          <span style={{ color: "var(--accent)", marginLeft: 6 }}>● HOST</span>
+        )}
       </p>
     </div>
   );
@@ -494,19 +646,46 @@ function GameOver({
   onExit?: () => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: 48, textAlign: "center" }}>
-      <h2 style={{ fontSize: 36, fontWeight: 900, color: "var(--fg-primary)", margin: 0 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 20,
+        padding: 48,
+        textAlign: "center",
+      }}
+    >
+      <h2
+        style={{
+          fontSize: 36,
+          fontWeight: 900,
+          color: "var(--fg-primary)",
+          margin: 0,
+        }}
+      >
         {winner ? "🏆 Winner! / 勝者！" : "💀 Game Over / ゲームオーバー"}
       </h2>
       {winner && (
-        <p style={{ fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>{winner}</p>
+        <p style={{ fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>
+          {winner}
+        </p>
       )}
       <div style={{ display: "flex", gap: 12 }}>
-        <button onClick={onReplay} style={{
-          padding: "12px 32px", background: "var(--accent)", color: "#fff",
-          border: "none", borderRadius: "var(--radius-sm)", fontWeight: 700,
-          fontSize: 15, cursor: "pointer", boxShadow: "0 4px 12px var(--accent-glow)",
-        }}>
+        <button
+          onClick={onReplay}
+          style={{
+            padding: "12px 32px",
+            background: "var(--accent)",
+            color: "#fff",
+            border: "none",
+            borderRadius: "var(--radius-sm)",
+            fontWeight: 700,
+            fontSize: 15,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px var(--accent-glow)",
+          }}
+        >
           Play Again / もう一度
         </button>
         <button onClick={onExit} style={secondaryBtn}>
@@ -530,17 +709,26 @@ const secondaryBtn: React.CSSProperties = {
 };
 
 const overlayStyle: React.CSSProperties = {
-  position: "absolute", inset: 0,
-  display: "flex", flexDirection: "column",
-  alignItems: "center", justifyContent: "center",
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
   background: "rgba(0,0,0,0.6)",
   borderRadius: 12,
 };
 
 const dpadBtn: React.CSSProperties = {
-  width: 44, height: 44,
-  display: "flex", alignItems: "center", justifyContent: "center",
-  background: "var(--bg-glass)", border: "1px solid var(--border)",
-  borderRadius: "var(--radius-sm)", cursor: "pointer",
-  color: "var(--fg-secondary)", fontSize: 16,
+  width: 44,
+  height: 44,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "var(--bg-glass)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-sm)",
+  cursor: "pointer",
+  color: "var(--fg-secondary)",
+  fontSize: 16,
 };
