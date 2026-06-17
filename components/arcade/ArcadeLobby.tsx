@@ -7,8 +7,9 @@ import ArcadeGameCard from "./ArcadeGameCard";
 import StroopGame from "./stroop/StroopGame";
 import NanaGame from "./nana/NanaGame";
 import { getUserRanking, getUserGlobalRank } from "@/lib/arcade/arcade-db";
+import SnakeGame from "./SnakeGame";
 
-type ActiveGame = "stroop" | "nana" | null;
+type ActiveGame = "stroop" | "nana" | "snake" | null;
 
 interface PersonalStats {
   stroopBest: number | null;
@@ -58,13 +59,12 @@ export default function ArcadeLobby() {
   }
 
   if (activeGame === "nana") {
-    // 第 61 行替換成：
-    // 改成：
-    // 改成：
-    // 改成：
     return <NanaGame onExit={() => setActiveGame(null)} />;
   }
 
+  if (activeGame === "snake") {
+    return <SnakeGame onExit={() => setActiveGame(null)} />;
+  }
   // ── Lobby ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -114,6 +114,19 @@ export default function ArcadeLobby() {
           personalBest={null}
           globalRank={null}
           onPlay={() => setActiveGame("nana")}
+          lang={lang}
+        />
+
+        <ArcadeGameCard
+          gameId="snake"
+          title="Snake"
+          title_ja="スネーク"
+          description="Multi-player Snake — last one alive wins. Up to 4 players online."
+          description_ja="マルチプレイヤー・スネーク — 最後まで生き残れ。最大4人オンライン対戦。"
+          icon="🐍"
+          personalBest={null}
+          globalRank={null}
+          onPlay={() => setActiveGame("snake")}
           lang={lang}
         />
       </div>

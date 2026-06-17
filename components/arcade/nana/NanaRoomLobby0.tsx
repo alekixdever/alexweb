@@ -1,7 +1,7 @@
 // components/arcade/nana/NanaRoomLobby.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   createNanaRoom,
@@ -43,13 +43,6 @@ export default function NanaRoomLobby({
   const [myPlayerIndex, setMyPlayerIndex] = useState(0);
   const [players, setPlayers] = useState<NanaRoomPlayerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  // Guard against onRoomReady firing more than once for the same room.
-  // Without this, any later realtime update to `players` (reconnect,
-  // another player's row changing, etc.) while still in "waiting" phase
-  // would re-trigger onRoomReady → NanaGame re-runs setupGame() → the
-  // in-progress game state gets wiped mid-match.
-  const roomReadyFiredRef = useRef(false);
 
   const t = (en: string, ja: string) => (lang === "ja" ? ja : en);
 
@@ -113,9 +106,6 @@ export default function NanaRoomLobby({
           filter: `room_id=eq.${roomId}`,
         },
         async () => {
-          // Once the room has already fired onRoomReady, stop reacting to
-          // further player-list changes — the match is underway.
-          if (roomReadyFiredRef.current) return;
           const updated = await getNanaRoomPlayers(roomId);
           setPlayers(updated);
         },
@@ -130,12 +120,9 @@ export default function NanaRoomLobby({
   // ── Auto-start when room is full ──────────────────────────────────────────
   useEffect(() => {
     if (phase !== "waiting" || players.length === 0) return;
-    if (roomReadyFiredRef.current) return; // already started — never re-fire
 
     getNanaRoom(roomId).then((room) => {
-      if (roomReadyFiredRef.current) return; // re-check after the async gap
       if (room && players.length >= room.player_count) {
-        roomReadyFiredRef.current = true;
         onRoomReady(roomId, myPlayerIndex, room.player_count);
       }
     });

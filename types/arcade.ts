@@ -187,3 +187,30 @@ export interface NanaRoomPlayer {
     avatar_url: string | null;
   };
 }
+
+// ── Snake ─────────────────────────────────────────────────────────────────
+
+export type SnakeDirection = "UP" | "DOWN" | "LEFT" | "RIGHT";
+
+export interface SnakePoint {
+  x: number;
+  y: number;
+}
+
+export interface SnakePlayerState {
+  playerIndex: number;
+  userId: string;
+  body: SnakePoint[];
+  dir: SnakeDirection;
+  alive: boolean;
+  score: number;
+}
+
+export interface SnakeGameState {
+  players: SnakePlayerState[];
+  food: SnakePoint;
+  tick: number;
+  totalEaten: number;
+  status: "countdown" | "playing" | "over";
+  winnerIndex: number | null;
+}

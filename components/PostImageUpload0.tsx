@@ -93,15 +93,7 @@ export default function PostImageUpload({
 
   async function handleRemove() {
     if (!value) return;
-    try {
-      await deleteImage(supabase, value);
-    } catch {
-      // Storage delete failed (e.g. already removed, network issue) — still
-      // clear the reference so the UI doesn't get stuck with an unremovable
-      // preview. The image may become an orphaned file in storage, but that's
-      // preferable to a stuck UI; worth a periodic storage cleanup job.
-      console.error("[PostImageUpload] failed to delete storage object:", value);
-    }
+    await deleteImage(supabase, value);
     onChange(null);
     setError(null);
   }

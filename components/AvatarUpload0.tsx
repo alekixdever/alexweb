@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import {
   uploadImage,
@@ -28,14 +28,6 @@ export default function AvatarUpload({
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
-
-  // Keep preview in sync if currentUrl changes externally (e.g. profile
-  // re-fetched elsewhere, or avatar updated from another tab/component).
-  // Skipped while uploading so we don't clobber the just-uploaded preview
-  // with a stale currentUrl before the parent has re-fetched.
-  useEffect(() => {
-    if (!uploading) setPreview(currentUrl ?? null);
-  }, [currentUrl, uploading]);
 
   async function handleFile(file: File) {
     setUploading(true);
